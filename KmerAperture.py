@@ -64,7 +64,7 @@ def read_kmers_from_file(filename, ksize):
     return all_kmers
 
 def get_uniques(kmer1set, kmer2set):
-    kmer1uniq = kmer1set - kmer2set
+    kmeruniq = kmer1set - kmer2set
     return kmeruniq
 
 def get_ranges(lst):
