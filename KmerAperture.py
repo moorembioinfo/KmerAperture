@@ -65,9 +65,7 @@ def read_kmers_from_file(filename, ksize):
 
 def get_uniques(kmer1set, kmer2set):
     kmer1uniq = kmer1set - kmer2set
-    kmer2uniq = kmer2set - kmer1set
-
-    return kmer1uniq, kmer2uniq
+    return kmeruniq
 
 def get_ranges(lst):
     pos = (j - i for i, j in enumerate(lst))
@@ -115,17 +113,18 @@ def run_KmerAperture(gList, reference, ksize):
 
         time0 = time.time()
         kmers2 = read_kmers_from_file(genome2, ksize)
+        kmer2set=set(kmers2)
         readtime= (time.time())-time0
 
         analysistime0 =time.time()
-        kmer2set=set(kmers2)
-        kmer1uniq, kmer2uniq = get_uniques(kmer1set, kmer2set)
+        kmer2uniq = get_uniques(kmer1set, kmer2set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
         kmer2diff, kmer2SNPs = get_accessory(kmer2ranges, ksize)
         analysistime = (time.time())-analysistime0
 
+        kmer1uniq = get_uniques(kmer2set, kmer1set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
