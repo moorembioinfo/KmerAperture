@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import screed
@@ -147,7 +148,7 @@ if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
-    gList = list(Path(args.fastas).glob("*.[fa][fas][fasta][fna]"))
+    gList = list(Path(args.fastas).glob("*[.fa][.fas][.fasta][.fna]"))
     run_KmerAperture(
         gList,
         reference,
