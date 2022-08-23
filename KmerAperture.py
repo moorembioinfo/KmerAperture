@@ -140,7 +140,7 @@ def run_KmerAperture(gList, reference, ksize):
         output.write(result)
         print(result)
 
-        timeresult =f"{readtime},{setanalysistime},{analysistime}"
+        timeresult =f"{readtime},{setanalysistime},{analysistime}\n"
         output2.write(timeresult)
         print(timeresult)
 
