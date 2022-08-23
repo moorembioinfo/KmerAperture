@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import pandas as pd
 import numpy as np
 import screed
@@ -6,7 +7,7 @@ import random
 from itertools import groupby
 import time
 import argparse
-
+import sys
 
 
 def add_args(a):
@@ -24,15 +25,9 @@ def add_args(a):
         required=True,
     )
     parser.add_argument(
-        "--output",
-        "-o",
-        help="Output directory",
-        required=True,
-    )
-    parser.add_argument(
         "--kmersize",
         "-k",
-        help="Kmer k size. Please provide an odd number",
+        help="Kmer k size. Preferably provide an odd number",
         type=int,
         default=21,
         required=False,
@@ -111,7 +106,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname2 = f'{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
-    output2.write('Timetoread,timeforset,timeforSNPfinding\n')
+    output2.write('Timetoread,timeforset,timeforSNP\n')
 
 
     for genome2 in gList:
@@ -140,16 +135,13 @@ def run_KmerAperture(gList, reference, ksize):
         jaccard = intersection/union
         setanalysistime = (time.time())-time0
 
-
         result =f"{genome2},{jaccard},{union},{intersection},{kmer1SNPs},{kmer2SNPs}\n"
-
         output.write(result)
+        print(result)
 
         timeresult =f"{readtime},{setanalysistime},{analysistime}"
         output2.write(timeresult)
         print(timeresult)
-
-
 
 if __name__=='__main__':
 
