@@ -98,16 +98,23 @@ def get_accessory(kmer1ranges, ksize):
             allSNPranges.append(pair)
     return allSNPranges, SNPs
 
-def assert_kmer(kmerranges):
+def assert_kmer(kmerranges, k, kmers2):
     SNPs = 0
     for pair in kmerranges:
         startpos = pair[0]
-        endpos = pair[1]-1
+        endpos = pair[1] 
         kgap = int((k-1)/2)
         km = kmers2[startpos+kgap]
         kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1]
-        if km==kt:
+        kt1 = (screed.rc(kt))
+        kt2 = screed.rc(kmers2[startpos])[kgap:] + kmers2[endpos][1:kgap+1]
+        kt3 = kmers2[startpos][kgap:] + screed.rc(kmers2[endpos])[1:kgap+1]
+
+        kp = [kt, kt1, kt2, kt3]
+        if km in kp:
             SNPs+=1
+        else:
+            print(kmers2[startpos:endpos])
     return(SNPs)
 
 def run_KmerAperture(gList, reference, ksize, sensitive):
@@ -135,16 +142,16 @@ def run_KmerAperture(gList, reference, ksize, sensitive):
         readtime= (time.time())-time0
 
         analysistime0 =time.time()
-        kmer2uniq = get_uniques(kmer1set, kmer2set)
+        kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
         SNPranges2, kmer2SNPs = get_accessory(kmer2ranges, ksize)
         if sensitive:
-            kmer2SNPs = assert_kmers(SNPranges2)
+            kmer2SNPs = assert_kmer(SNPranges2, ksize, kmers2)
         analysistime = (time.time())-analysistime0
 
-        kmer1uniq = get_uniques(kmer2set, kmer1set)
+        kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
