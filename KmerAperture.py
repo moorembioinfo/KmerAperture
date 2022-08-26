@@ -101,16 +101,25 @@ def get_accessory(kmer1ranges, ksize):
 def assert_kmer(kmerranges, k, kmers2):
     SNPs = 0
     for pair in kmerranges:
+        kp=[]
         startpos = pair[0]
-        endpos = pair[1] 
+        endpos = pair[1]
+
+        kf=kmers2[startpos]
+        ke=kmers2[endpos]
+        kf_rc = screed.rc(kf)
+        ke_rc = screed.rc(ke)
+
         kgap = int((k-1)/2)
         km = kmers2[startpos+kgap]
         kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1]
-        kt1 = (screed.rc(kt))
-        kt2 = screed.rc(kmers2[startpos])[kgap:] + kmers2[endpos][1:kgap+1]
-        kt3 = kmers2[startpos][kgap:] + screed.rc(kmers2[endpos])[1:kgap+1]
 
-        kp = [kt, kt1, kt2, kt3]
+        km_rc=screed.rc(km)
+
+        kp.append(kf_rc[kgap:] + kmers2[endpos][1:kgap+1])
+        kp.append(kmers2[startpos][kgap:] + ke_rc[1:kgap+1])
+        kp.append(kf_rc[kgap:] + ke_rc[1:kgap+1])
+
         if km in kp:
             SNPs+=1
         else:
