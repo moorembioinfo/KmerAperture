@@ -106,24 +106,19 @@ def assert_kmer(kmerranges, k, kmers2):
         endpos = pair[1]
 
         kf=kmers2[startpos]
-        ke=kmers2[endpos]
+        ke=kmers2[endpos-1]
         kf_rc = screed.rc(kf)
         ke_rc = screed.rc(ke)
 
         kgap = int((k-1)/2)
         km = kmers2[startpos+kgap]
-        kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1]
-
-        km_rc=screed.rc(km)
-
-        kp.append(kf_rc[kgap:] + kmers2[endpos][1:kgap+1])
-        kp.append(kmers2[startpos][kgap:] + ke_rc[1:kgap+1])
-        kp.append(kf_rc[kgap:] + ke_rc[1:kgap+1])
-
-        if km in kp:
+        kt1=(kf[kgap:] + ke[1:kgap+1])
+        kt2=(kf_rc[kgap:] + ke[1:kgap+1])
+        kt3=(kf[kgap:] + ke_rc[1:kgap+1])
+        kt4=(kf_rc[kgap:] + ke_rc[1:kgap+1])
+        kp=[kt1,kt2,kt3,kt4]
+        if str(km) in kp:
             SNPs+=1
-        else:
-            print(kmers2[startpos:endpos])
     return(SNPs)
 
 def run_KmerAperture(gList, reference, ksize, sensitive):
