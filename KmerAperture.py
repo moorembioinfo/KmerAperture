@@ -28,11 +28,19 @@ def add_args(a):
     parser.add_argument(
         "--kmersize",
         "-k",
-        help="Kmer k size. Preferably provide an odd number",
+        help="Kmer k size. Must be an odd number",
         type=int,
         default=21,
         required=False,
     )
+    parser.add_argument(
+    "--sensitive",
+    "-s",
+    help="Run in sensitive mode",
+    default=False,
+    action="store_true"
+    )
+
     args = parser.parse_args(a)
     return args
 
@@ -81,18 +89,28 @@ def get_indices(kmeruniq, kmers):
     return indexlist
 
 def get_accessory(kmer1ranges, ksize):
-    unioncorrect =0
     SNPs =0
+    allSNPranges = []
     for pair in kmer1ranges:
         rangediff = pair[1] - pair[0]
-        if rangediff > ksize:
-            unioncorrect+=rangediff
         if rangediff == ksize:
             SNPs+=1
+            allSNPranges.append(pair)
+    return allSNPranges, SNPs
 
-    return unioncorrect, SNPs
+def assert_kmer(kmerranges):
+    SNPs = 0
+    for pair in kmerranges:
+        startpos = pair[0]
+        endpos = pair[1]-1
+        kgap = int((k-1)/2)
+        km = kmers2[kgap]
+        kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1:]
+        if km==kt:
+            SNPs+=1
+    return(SNPs)
 
-def run_KmerAperture(gList, reference, ksize):
+def run_KmerAperture(gList, reference, ksize, sensitive):
 
     print('Reading in file 1')
 
@@ -121,14 +139,16 @@ def run_KmerAperture(gList, reference, ksize):
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
-        kmer2diff, kmer2SNPs = get_accessory(kmer2ranges, ksize)
+        SNPranges2, kmer2SNPs = get_accessory(kmer2ranges, ksize)
+        if sensitive:
+            kmer2SNPs = assert_kmers(SNPranges2)
         analysistime = (time.time())-analysistime0
 
         kmer1uniq = get_uniques(kmer2set, kmer1set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
-        kmer1diff, kmer1SNPs = get_accessory(kmer1ranges, ksize)
+        SNPranges1, kmer1SNPs = get_accessory(kmer1ranges, ksize)
 
         intersection = len(kmer1set.intersection(kmer2set))
         union = len(kmer1set.union(kmer2set))
@@ -143,12 +163,15 @@ def run_KmerAperture(gList, reference, ksize):
         output2.write(timeresult)
         print(timeresult)
 
+
 if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
     gList = list(Path(args.fastas).glob("*[.fa][.fas][.fasta][.fna]"))
+
     run_KmerAperture(
         gList,
         reference,
-        args.kmersize)
+        args.kmersize,
+        args.sensitive)
