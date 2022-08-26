@@ -104,8 +104,8 @@ def assert_kmer(kmerranges):
         startpos = pair[0]
         endpos = pair[1]-1
         kgap = int((k-1)/2)
-        km = kmers2[kgap]
-        kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1:]
+        km = kmers2[startpos+kgap]
+        kt = kmers2[startpos][kgap:] + kmers2[endpos][1:kgap+1]
         if km==kt:
             SNPs+=1
     return(SNPs)
