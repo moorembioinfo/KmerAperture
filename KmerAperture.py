@@ -46,11 +46,14 @@ def add_args(a):
 
 def canonicalise(kmer):
     canonical_kmer=''
-    rc_kmer = screed.rc(kmer)
-    if kmer < rc_kmer:
-        canonical_kmer = kmer
-    else:
-        canonical_kmer = rc_kmer
+    try:
+        rc_kmer = screed.rc(kmer)
+        if kmer < rc_kmer:
+            canonical_kmer = kmer
+        else:
+            canonical_kmer = rc_kmer
+    except:
+        pass
     return canonical_kmer
 
 def build_kmers(sequence, ksize):
@@ -59,8 +62,9 @@ def build_kmers(sequence, ksize):
     for i in range(n_kmers):
         kmer = sequence[i:i + ksize]
         c_kmer = canonicalise(kmer)
-        if not 'N' in c_kmer:
-            kmers.append(c_kmer)
+        if c_kmer:
+            if not 'N' in c_kmer:
+                kmers.append(c_kmer)
     return kmers
 
 def read_kmers_from_file(filename, ksize):
@@ -128,11 +132,11 @@ def run_KmerAperture(gList, reference, ksize, sensitive):
     kmers1 = read_kmers_from_file(reference, ksize)
     kmer1set=set(kmers1)
 
-    outname = f'{reference}_{ksize}.csv'
+    outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
     output.write('gID,Jaccard,Union,Intersection,SNP1,SNP2\n')
 
-    outname2 = f'{reference}_{ksize}_timings.csv'
+    outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
     output2.write('Timetoread,timeforset,timeforSNP\n')
 
@@ -179,8 +183,8 @@ if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
-    gList = list(Path(args.fastas).glob("*[.fa][.fas][.fasta][.fna]"))
-
+    gList = list(Path(args.fastas).glob("*.fasta"))
+    print(gList)
     run_KmerAperture(
         gList,
         reference,
