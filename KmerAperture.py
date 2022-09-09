@@ -144,7 +144,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,Jaccard,Union,Intersection,SNP1,SNP2,matched\n')
+    output.write('gID,Jaccard,Union,Intersection,SNP1,SNP2,SNPmean,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -197,16 +197,11 @@ if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
-    gList = list(Path(args.fastas).glob("*.fna"))
-    print(gList)
-    #fh=open('subsample_for_testing.txt')
-    #fc=fh.readlines()
-    #filtered=[]
-    #for line in fc:
-    #    filtered.append(line.rstrip())
-    #gList_f = filtered
-    #gList_f = list(set(gList).intersection(set(filtered)))
-    #print(gList_f)
+    genomedir = args.fastas
+    gList = list(Path(genomedir).glob("*[.fasta]"))
+    gList.extend(list(Path(genomedir).glob("*[.fna]")))
+    gList.extend(list(Path(genomedir).glob("*[.fa]")))
+
     run_KmerAperture(
         gList,
         reference,
