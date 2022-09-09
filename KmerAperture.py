@@ -32,13 +32,13 @@ def add_args(a):
         type=int,
         default=21,
         required=False,
-    )
-    parser.add_argument(
-    "--sensitive",
-    "-s",
-    help="Run in sensitive mode",
-    default=False,
-    action="store_true"
+        #)
+    #parser.add_argument(
+    #"--sensitive",
+    #"-s",
+    #help="Run in sensitive mode",
+    #default=False,
+    #action="store_true"
     )
 
     args = parser.parse_args(a)
@@ -93,14 +93,20 @@ def get_indices(kmeruniq, kmers):
     return indexlist
 
 def get_accessory(kmer1ranges, ksize):
-    SNPs =0
+    #SNPs =0
+    acclength = 0
     allSNPranges = []
+    accranges=[]
     for pair in kmer1ranges:
         rangediff = pair[1] - pair[0]
         if rangediff == ksize:
-            SNPs+=1
+            #SNPs+=1
             allSNPranges.append(pair)
-    return allSNPranges, SNPs
+        if (rangediff>=(ksize*2)):
+            acclength+=rangediff
+            acclength +=(ksize-1)
+            accranges.append(pair)
+    return allSNPranges, accranges, acclength
 
 def assert_kmer(kmerranges, k, kmers2):
     SNPs = 0
@@ -123,14 +129,13 @@ def assert_kmer(kmerranges, k, kmers2):
         kt4=(kf_rc[kgap:] + ke_rc[1:kgap+1])
         kp=[kt1,kt2,kt3,kt4]
         if str(km) in kp:
-            klist.append(kf[0:-1])
             SNPs+=1
-    return(SNPs, klist)
+    return(SNPs)
 
-def find_matching(reflist, querylist):
-    return len(set(reflist).intersection(set(querylist)))
+#def find_matching(reflist, querylist):
+#    return len(set(reflist).intersection(set(querylist)))
 
-def run_KmerAperture(gList, reference, ksize, sensitive):
+def run_KmerAperture(gList, reference, ksize):
 
     print('Reading in file 1')
 
@@ -159,21 +164,19 @@ def run_KmerAperture(gList, reference, ksize, sensitive):
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
-        SNPranges2, kmer2SNPs = get_accessory(kmer2ranges, ksize)
-        if sensitive:
-            kmer2SNPs, k2list = assert_kmer(SNPranges2, ksize, kmers2)
+        SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges, ksize)
+        
+        kmer2SNPs = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
-        SNPranges1, kmer1SNPs = get_accessory(kmer1ranges, ksize)
-        if sensitive:
-            kmer1SNPs, k1list = assert_kmer(SNPranges1, ksize, kmers1)
-
-        if sensitive:
-            matchedSNPs = find_matching(k1list, k2list)
-
+        SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges, ksize)
+        
+        kmer1SNPs = assert_kmer(SNPranges1, ksize, kmers1)
+        
+        matchedSNPs=int((kmer1SNPs+kmer2SNPs)/2)
         analysistime = (time.time())-analysistime0
 
         intersection = len(kmer1set.intersection(kmer2set))
@@ -181,7 +184,7 @@ def run_KmerAperture(gList, reference, ksize, sensitive):
         jaccard = intersection/union
         setanalysistime = (time.time())-time0
 
-        result =f"{genome2},{jaccard},{union},{intersection},{kmer1SNPs},{kmer2SNPs},{matchedSNPs}\n"
+        result =f"{genome2},{jaccard},{union},{intersection},{kmer1SNPs},{kmer2SNPs},{matchedSNPs},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
@@ -194,10 +197,17 @@ if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
-    gList = list(Path(args.fastas).glob("*.fasta"))
+    gList = list(Path(args.fastas).glob("*.fna"))
     print(gList)
+    #fh=open('subsample_for_testing.txt')
+    #fc=fh.readlines()
+    #filtered=[]
+    #for line in fc:
+    #    filtered.append(line.rstrip())
+    #gList_f = filtered
+    #gList_f = list(set(gList).intersection(set(filtered)))
+    #print(gList_f)
     run_KmerAperture(
         gList,
         reference,
-        args.kmersize,
-        args.sensitive)
+        args.kmersize)
