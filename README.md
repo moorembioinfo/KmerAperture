@@ -2,7 +2,7 @@
 
 ![Python](https://badges.aleen42.com/src/python.svg) 
 
-Alignment-free estimation of SNP distances in closely related genomes
+Alignment-free estimation of core and accessory distances in closely related genomes.
 
 
 
@@ -37,7 +37,6 @@ Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Desc
 `--fastas` |  `-f` |  Provide path to query fastas directory | ✅
 `--reference` |     `-r` |  Path and file name of fasta reference genome | ✅ | 
 `--kmersize` |      `-k` |  k size |                             | 21
-`--sensitive` |        |  Run in sensitive mode | | False
 
 <br />
 <br />
