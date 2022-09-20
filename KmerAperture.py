@@ -99,44 +99,20 @@ def get_accessory(kmer1ranges, ksize):
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
+
 def assert_kmer(kmerranges, k, kmers2):
-    SNPs = 0
     klist = []
     for pair in kmerranges:
         kp=[]
         startpos = pair[0]
         endpos = pair[1]
-
-        #Get all possible 1st and final kmers rc/non-rc
-        kf=kmers2[startpos]
-        ke=kmers2[endpos-1]
-        kf_rc = screed.rc(kf)
-        ke_rc = screed.rc(ke)
-
-        #Reconstruct middle kmer from first and final
-        #Where reconstruction matches, the series is a kmer
         kgap = int((k-1)/2)
-
         km = kmers2[startpos+kgap]
-
-        kt1=(kf[kgap:] + ke[1:kgap+1])
-        kt2=(kf_rc[kgap:] + ke[1:kgap+1])
-        kt3=(kf[kgap:] + ke_rc[1:kgap+1])
-        kt4=(kf_rc[kgap:] + ke_rc[1:kgap+1])
-        kp=[kt1,kt2,kt3,kt4]
-
-        if str(km) in kp:
-            SNPs+=1
-
-            #reconstruct original sequence without middle base
-            mkmer0 = kf[0:-1] +'-'+ke[1:]
-            mkmer1 =  kf_rc[0:-1] +'-'+ke[1:]
-            mkmer2 = kf[0:-1] +'-'+ke_rc[1:]
-            mkmer3 = kf_rc[0:-1] +'-'+ke_rc[1:]
-            klist.extend([mkmer0, mkmer1, mkmer2, mkmer3])
-
-
-    return(SNPs, klist)
+        km_rc = screed.rc(km)
+        mkmer0 = km[:kgap] + km[kgap+1:]
+        mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
+        klist.extend([mkmer0, mkmer1])#
+    return(klist)
 
 #def find_matching(reflist, querylist):
 #    return len(set(reflist).intersection(set(querylist)))
@@ -172,7 +148,7 @@ def run_KmerAperture(gList, reference, ksize):
         kmer2ranges = get_ranges(kmer2indices)
         SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges, ksize)
 
-        kmer2SNPs, klist2 = assert_kmer(SNPranges2, ksize, kmers2)
+        klist2 = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
@@ -180,18 +156,19 @@ def run_KmerAperture(gList, reference, ksize):
         kmer1ranges = get_ranges(kmer1indices)
         SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges, ksize)
 
-        kmer1SNPs, klist1 = assert_kmer(SNPranges1, ksize, kmers1)
+        klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
-        meanSNPs=int((kmer1SNPs+kmer2SNPs)/2)
+        #meanSNPs=int((kmer1SNPs+kmer2SNPs)/2)
         matchedSNPs = len(set(klist1).intersection(set(klist2)))
         analysistime = (time.time())-analysistime0
 
+        jtime = time.time()
         intersection = len(kmer1set.intersection(kmer2set))
         union = len(kmer1set.union(kmer2set))
         jaccard = intersection/union
-        setanalysistime = (time.time())-time0
+        setanalysistime = (time.time())-jtime
 
-        result =f"{genome2},{jaccard},{union},{intersection},{kmer1SNPs},{kmer2SNPs},{matchedSNPs},{meanSNPs},{acclength1},{acclength2}\n"
+        result =f"{genome2},{jaccard},{union},{intersection},{matchedSNPs},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
