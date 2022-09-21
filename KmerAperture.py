@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from pathlib import Path
 import pandas as pd
 import numpy as np
 import screed
@@ -126,7 +125,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,Jaccard,Union,Intersection,SNP1,SNP2,matchedSNP,SNPmean,acc1,acc2\n')
+    output.write('gID,Jaccard,Union,Intersection,matchedSNP,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -182,9 +181,11 @@ if __name__=='__main__':
     args = add_args(sys.argv[1:])
     reference =args.reference
     genomedir = args.fastas
-    gList = list(Path(genomedir).glob("*[.fasta]"))
-    gList.extend(list(Path(genomedir).glob("*[.fna]")))
-    gList.extend(list(Path(genomedir).glob("*[.fa]")))
+    for filename in os.listdir(genomedir):
+        if filename.endswith('.fna') or filename.endswith('.fasta') or filename.endswith('.fas'):
+            gList.append(genomedir + filename)
+
+    print("Found {len(gList)} genomes for comparison")
 
     run_KmerAperture(
         gList,
