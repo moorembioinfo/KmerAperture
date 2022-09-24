@@ -215,11 +215,12 @@ if __name__=='__main__':
     args = add_args(sys.argv[1:])
     reference =args.reference
     genomedir = args.fastas
+    gList =[]
     for filename in os.listdir(genomedir):
         if filename.endswith('.fna') or filename.endswith('.fasta') or filename.endswith('.fas'):
             gList.append(genomedir + filename)
 
-    print("Found {len(gList)} genomes for comparison")
+    print(f"Found {len(gList)} genomes for comparison")
 
     run_KmerAperture(
         gList,
