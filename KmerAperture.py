@@ -113,8 +113,42 @@ def assert_kmer(kmerranges, k, kmers2):
         klist.extend([mkmer0, mkmer1])#
     return(klist)
 
-#def find_matching(reflist, querylist):
-#    return len(set(reflist).intersection(set(querylist)))
+def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
+    kend = (2*k)
+    seriessize = range(k,kend)
+    middlekmers1 = []
+    middlekmers2 = []
+    for L in seriessize:
+        k2_L_ranges = []
+        k1_L_ranges = []
+        for pair in kmer1ranges:
+            rangediff = pair[1] - pair[0]
+            if rangediff == L:
+                k1_L_ranges.append(pair)
+        for pair in kmer2ranges:
+            rangediff = pair[1] - pair[0]
+            if rangediff == L:
+                k2_L_ranges.append(pair)
+
+        spacer = (L-k)
+        for pair in k1_L_ranges:
+            startpos = pair[0]
+            mkmer1 = kmers1[startpos + (k-1)]
+            woSNPs = middleK[1:spacer] + middleK[spacer+1:]
+            km1_rc=screed.rc(mkmer1)
+            mkmer2 = km1_rc[1:spacer] + km_rc[spacer+1:]
+            middlekmers1.extend([mkmer1, mkmer2])
+        for pair in k2_L_ranges:
+            startpos = pair[0]
+            mkmer1 = kmers1[startpos + (k-1)]
+            woSNPs = middleK[1:spacer] + middleK[spacer+1:]
+            km1_rc=screed.rc(mkmer1)
+            mkmer2 = km1_rc[1:spacer] + km_rc[spacer+1:]
+            middlekmers2.extend([mkmer1, mkmer2])
+
+    denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
+    return(denseSNPs)
+
 
 def run_KmerAperture(gList, reference, ksize):
 
@@ -157,8 +191,8 @@ def run_KmerAperture(gList, reference, ksize):
 
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
-        #meanSNPs=int((kmer1SNPs+kmer2SNPs)/2)
         matchedSNPs = len(set(klist1).intersection(set(klist2)))
+        denseSNPs = find_dense_SNP(kmer2ranges, kmer1ranges, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
 
         jtime = time.time()
@@ -167,7 +201,7 @@ def run_KmerAperture(gList, reference, ksize):
         jaccard = intersection/union
         setanalysistime = (time.time())-jtime
 
-        result =f"{genome2},{jaccard},{union},{intersection},{matchedSNPs},{acclength1},{acclength2}\n"
+        result =f"{genome2},{jaccard},{union},{intersection},{matchedSNPs},{denseSNPs},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
