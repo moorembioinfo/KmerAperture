@@ -115,7 +115,7 @@ def assert_kmer(kmerranges, k, kmers2):
 
 def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
     kend = (2*k)
-    seriessize = range(k,kend)
+    seriessize = range(k+2,kend)
     middlekmers1 = []
     middlekmers2 = []
     for L in seriessize:
@@ -147,7 +147,7 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
             middlekmers2.extend([mkmer1, mkmer2])
 
     denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
-    return(denseSNPs)
+    return(denseSNPs*2)
 
 
 def run_KmerAperture(gList, reference, ksize):
@@ -159,7 +159,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,Jaccard,Union,Intersection,matchedSNP,acc1,acc2\n')
+    output.write('gID,Jaccard,Union,Intersection,matchedSNP,denseSNPs,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
