@@ -114,11 +114,16 @@ def assert_kmer(kmerranges, k, kmers2):
     return(klist)
 
 def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
+
+    SNPs=0
     kend = (2*k)
     seriessize = range(k+2,kend)
-    middlekmers1 = []
-    middlekmers2 = []
+
+
     for L in seriessize:
+        middlekmers1 = []
+        middlekmers2 = []
+        print(L)
         k2_L_ranges = []
         k1_L_ranges = []
         for pair in kmer1ranges:
@@ -130,24 +135,43 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
             if rangediff == L:
                 k2_L_ranges.append(pair)
 
+        print(k1_L_ranges[0:10], k2_L_ranges[0:10])
+
+        #Space between SNPs at L=k+2  is L-k-1. But for python, +1
         spacer = (L-k)
         for pair in k1_L_ranges:
             startpos = pair[0]
             mkmer1 = kmers1[startpos + (k-1)]
-            woSNPs = middleK[1:spacer] + middleK[spacer+1:]
+            mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
             km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km_rc[spacer+1:]
-            middlekmers1.extend([mkmer1, mkmer2])
+            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+            middlekmers1.extend([mkmer3, mkmer2])
         for pair in k2_L_ranges:
             startpos = pair[0]
-            mkmer1 = kmers1[startpos + (k-1)]
-            woSNPs = middleK[1:spacer] + middleK[spacer+1:]
+            mkmer1 = kmers2[startpos + (k-1)]
+            mkmer3 = mkmer3[1:spacer] + mkmer3[spacer+1:]
             km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km_rc[spacer+1:]
-            middlekmers2.extend([mkmer1, mkmer2])
+            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+            middlekmers2.extend([mkmer3, mkmer2])
+        #for pair in k1_L_ranges:
+        #    startpos = pair[0]
+        #    mkmer1 = kmers1[spacer+1]
+        #    mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
+        #    km1_rc=screed.rc(mkmer1)
+        #    mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+        #    middlekmers1.extend([mkmer3, mkmer2])
+        #for pair in k2_L_ranges:
+        #    startpos = pair[0]
+        #    mkmer1 = kmers2[spacer+1]
+        #    mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
+        #    km1_rc=screed.rc(mkmer1)
+        #    mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+        #    middlekmers2.extend([mkmer3, mkmer2])
 
-    denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
-    return(denseSNPs*2)
+
+        denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
+        SNPs+=denseSNPs
+    return(SNPs*2)
 
 
 def run_KmerAperture(gList, reference, ksize):
@@ -159,7 +183,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,Jaccard,Union,Intersection,matchedSNP,denseSNPs,acc1,acc2\n')
+    output.write('gID,matchedSNP,denseSNPs,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -174,12 +198,17 @@ def run_KmerAperture(gList, reference, ksize):
         kmer2set=set(kmers2)
         readtime= (time.time())-time0
 
+        #print(kmers1[804708:804768])
+        #print(kmers2[4401257:4401317])
+        #exit()
+
         analysistime0 =time.time()
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
-        SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges, ksize)
+        kmer2ranges_=list(kmer2ranges)
+        SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges_, ksize)
 
         klist2 = assert_kmer(SNPranges2, ksize, kmers2)
 
@@ -187,25 +216,20 @@ def run_KmerAperture(gList, reference, ksize):
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
-        SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges, ksize)
+        kmer1ranges_=list(kmer1ranges)
+        SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges_, ksize)
 
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
         matchedSNPs = len(set(klist1).intersection(set(klist2)))
-        denseSNPs = find_dense_SNP(kmer2ranges, kmer1ranges, ksize, kmers2, kmers1)
+        denseSNPs = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
 
-        jtime = time.time()
-        intersection = len(kmer1set.intersection(kmer2set))
-        union = len(kmer1set.union(kmer2set))
-        jaccard = intersection/union
-        setanalysistime = (time.time())-jtime
-
-        result =f"{genome2},{jaccard},{union},{intersection},{matchedSNPs},{denseSNPs},{acclength1},{acclength2}\n"
+        result =f"{genome2},{matchedSNPs},{denseSNPs},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
-        timeresult =f"{readtime},{setanalysistime},{analysistime}\n"
+        timeresult =f"{readtime},{analysistime}\n"
         output2.write(timeresult)
         print(timeresult)
 
