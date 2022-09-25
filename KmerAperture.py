@@ -119,11 +119,9 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
     kend = (2*k)
     seriessize = range(k+2,kend)
 
-
     for L in seriessize:
         middlekmers1 = []
         middlekmers2 = []
-        print(L)
         k2_L_ranges = []
         k1_L_ranges = []
         for pair in kmer1ranges:
@@ -134,8 +132,6 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
             rangediff = pair[1] - pair[0]
             if rangediff == L:
                 k2_L_ranges.append(pair)
-
-        print(k1_L_ranges[0:10], k2_L_ranges[0:10])
 
         #Space between SNPs at L=k+2  is L-k-1. But for python, +1
         spacer = (L-k)
@@ -167,7 +163,6 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
         #    km1_rc=screed.rc(mkmer1)
         #    mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
         #    middlekmers2.extend([mkmer3, mkmer2])
-
 
         denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
         SNPs+=denseSNPs
@@ -221,7 +216,7 @@ def run_KmerAperture(gList, reference, ksize):
 
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
-        matchedSNPs = len(set(klist1).intersection(set(klist2)))
+        matchedSNPs = len(set(klist1).intersection(set(klist2)))/2
         denseSNPs = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
 
