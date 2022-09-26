@@ -1,6 +1,6 @@
 # KmerAperture
 
-![Python](https://badges.aleen42.com/src/python.svg) 
+![Python](https://badges.aleen42.com/src/python.svg) ![conda](https://img.shields.io/badge/%E2%80%8B-conda-%2344A833.svg?style=flat&logo=anaconda&logoColor=44A833)
 
 Alignment-free estimation of core and accessory distances in closely related genomes.
 
@@ -28,6 +28,13 @@ Then run the main script `KmerAperture.py` referencing your fasta directory and 
 python KmerAperture.py --fastas <fasta dir> --reference <ref file fasta>
 ```
 
+## Input
+
+A reference genome and a directory of assembled query genomes (fasta format)
+
+## Output
+
+A .csv file with genomeID, estimated SNPs and estimated sequence presence in the reference (acc1) and query genome (acc2)
 
 
 ## Options
