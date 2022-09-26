@@ -213,7 +213,7 @@ def run_KmerAperture(gList, reference, ksize):
 
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
-        int(matchedSNPs = len(set(klist1).intersection(set(klist2)))/2)
+        matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
         denseSNPs = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
 
