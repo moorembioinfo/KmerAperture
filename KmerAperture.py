@@ -141,18 +141,18 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
         for pair in k1_L_ranges:
             startpos = pair[0]
             mkmer1 = kmers1[startpos + (k-1)]
-            mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
+            #mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
             km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers1.extend([mkmer3, mkmer2])
+            #mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+            #middlekmers1.extend([mkmer3, mkmer2])
             a.extend([mkmer1, km1_rc])
         for pair in k2_L_ranges:
             startpos = pair[0]
             mkmer1 = kmers2[startpos + (k-1)]
-            mkmer3 = mkmer3[1:spacer] + mkmer3[spacer+1:]
+            #mkmer3 = mkmer3[1:spacer] + mkmer3[spacer+1:]
             km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers2.extend([mkmer3, mkmer2])
+            #mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
+            #middlekmers2.extend([mkmer3, mkmer2])
             b.extend([mkmer1, km1_rc])
 
         denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
