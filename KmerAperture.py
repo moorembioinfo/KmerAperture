@@ -195,6 +195,7 @@ def run_KmerAperture(gList, reference, ksize):
 
         time0 = time.time()
         kmers2 = read_kmers_from_file(genome2, ksize)
+
         kmer2set=set(kmers2)
         readtime= (time.time())-time0
 
@@ -222,9 +223,10 @@ def run_KmerAperture(gList, reference, ksize):
         denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime2 = (time.time())-analysistime0
 
-        jtime0=time.time()
-        J = (kmer1set.intersection(kmer2set))/(kmer1set.union(kmer2set))
-        jtime = time.time()-jtime0
+
+        Jtime0 = time.time()
+        J = len(kmer1set.intersection(kmer2set))/len(kmer1set.union(kmer2set))
+        jtime = time.time()-Jtime0
 
         result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
         output.write(result)
