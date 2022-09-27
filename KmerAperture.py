@@ -116,11 +116,11 @@ def assert_kmer(kmerranges, k, kmers2):
 
 def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
 
-    SNPs3=0
     SNPs2=0
+    SNPs3=0
+    SNPs4=0
     kend = (2*k)
     seriessize = range(k+2,kend)
-
     for L in seriessize:
         middlekmers1 = []
         middlekmers2 = []
@@ -134,7 +134,6 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
             rangediff = pair[1] - pair[0]
             if rangediff == L:
                 k2_L_ranges.append(pair)
-
         #Space between SNPs at L=k+2  is L-k-1. But for python, +1
         a =[]
         b = []
@@ -162,17 +161,17 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
         for pair in pairs_kmers:
             counter =0
             for p, g in zip(pair[0], pair[1]):
-                #counter=0
                 if p==g:
                     counter+=1
-                snps =k-counter
-                if snps==3:
-                    #dSNPs+=counter
-                    SNPs3+=snps
-                if snps==2:
-                    SNPs2+=snps
+            snps =k-counter
+            if snps==2:
+                SNPs2+=snps
+            if snps==3:
+                SNPs3+=snps
+            if snps==4:
+                SNPs4+=snps
 
-    return(SNPs2, SNPs3)
+    return(SNPs2, SNPs3, SNPs4)
 
 
 def run_KmerAperture(gList, reference, ksize):
@@ -184,7 +183,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,matchedSNP,denseSNPs2,denseSNPs3,acc1,acc2\n')
+    output.write('gID,matchedSNP,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -219,10 +218,11 @@ def run_KmerAperture(gList, reference, ksize):
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
         matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
-        denseSNPs2, denseSNPs3 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
+        denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
 
-        result =f"{genome2},{matchedSNPs},{denseSNPs2},{denseSNPs3},{acclength1},{acclength2}\n"
+
+        result =f"{genome2},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
