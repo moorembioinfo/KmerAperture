@@ -12,6 +12,7 @@ KmerAperture.py is written in python3 and requires the following python packages
 
 > - numpy
 > - screed
+> - pandas
 
 ## Usage
 
