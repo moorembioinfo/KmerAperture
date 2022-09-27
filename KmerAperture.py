@@ -183,11 +183,11 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,matchedSNP,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
+    output.write('gID,matchedSNP,Jaccard,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
-    output2.write('Timetoread,timeforset,timeforSNP\n')
+    output2.write('Timetoread,timeforset,timeforSNP,timefordenseSNP\n')
 
 
     for genome2 in gList:
@@ -218,18 +218,20 @@ def run_KmerAperture(gList, reference, ksize):
         klist1 = assert_kmer(SNPranges1, ksize, kmers1)
 
         matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
-        denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime = (time.time())-analysistime0
+        denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
+        analysistime2 = (time.time())-analysistime0
 
+        jtime0=time.time()
+        J = (kmer1set.intersection(kmer2set))/(kmer1set.union(kmer2set))
+        jtime = time.time()-jtime0
 
-        result =f"{genome2},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
+        result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
-        timeresult =f"{readtime},{analysistime}\n"
+        timeresult =f"{readtime},{jtime},{analysistime},{analysistime2}\n"
         output2.write(timeresult)
-        print(timeresult)
-
 
 if __name__=='__main__':
 
