@@ -55,9 +55,9 @@ def build_kmers(sequence, ksize):
     for i in range(n_kmers):
         kmer = sequence[i:i + ksize]
         c_kmer = canonicalise(kmer)
-        if c_kmer:
-            if not 'N' in c_kmer:
-                kmers.append(c_kmer)
+        #if c_kmer:
+        #    if not 'N' in c_kmer:
+        kmers.append(c_kmer)
     return kmers
 
 def read_kmers_from_file(filename, ksize):
@@ -99,9 +99,9 @@ def get_accessory(kmer1ranges, ksize):
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
-
 def assert_kmer(kmerranges, k, kmers2):
     klist = []
+    positiondict ={}
     for pair in kmerranges:
         kp=[]
         startpos = pair[0]
@@ -111,15 +111,51 @@ def assert_kmer(kmerranges, k, kmers2):
         km_rc = screed.rc(km)
         mkmer0 = km[:kgap] + km[kgap+1:]
         mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
-        klist.extend([mkmer0, mkmer1])#
-    return(klist)
+        klist.extend([mkmer0, mkmer1])
+
+        positiondict[mkmer0] = (startpos+k) #Should be -1, but snippy output is 1-indexed
+        positiondict[mkmer1] = (startpos+k) #-1
+    return(klist, positiondict)
+
+def get_SNPs(middlekinter, klist1pos, klist2pos, filename, qfilename):
+    relativeSNPpos = []
+
+    sequence=''
+    for record in screed.open(filename):
+        sequence += record.sequence
+    qsequence =''
+    for record in screed.open(qfilename):
+        qsequence += record.sequence
+    for mkmer in list(middlekinter):
+
+        refpos = klist1pos.get(mkmer)
+        refbase = sequence[refpos]
+        querypos = klist2pos.get(mkmer)
+        querybase = qsequence[querypos]
+
+        poss = [refpos,str(refbase),querypos,str(querybase)]
+        if poss not in relativeSNPpos:
+            print(mkmer)
+            print(poss)
+            relativeSNPpos.append(poss)
+
+    print(relativeSNPpos)
+    print(len(relativeSNPpos))
+    print(len(middlekinter))
+    df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
+    print(df)
+
 
 def run_KmerAperture(gList, reference, ksize):
 
     print('Reading in reference genome')
 
     kmers1 = read_kmers_from_file(reference, ksize)
-    kmer1set=set(kmers1)
+    kmers1_=[]
+    for kmer in kmers1:
+        if not 'N' in kmer:
+            kmers1_.append(kmer)
+    kmer1set=set(kmers1_)
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
@@ -128,10 +164,12 @@ def run_KmerAperture(gList, reference, ksize):
 
     for genome2 in gList:
         print(f'Reading in query genome {genome2}')
-
         kmers2 = read_kmers_from_file(genome2, ksize)
-
-        kmer2set=set(kmers2)
+        kmers2_=[]
+        for kmer in kmers2:
+            if not 'N' in kmer:
+                kmers2_.append(kmer)
+        kmer2set=set(kmers2_)
 
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
@@ -139,8 +177,7 @@ def run_KmerAperture(gList, reference, ksize):
         kmer2ranges = get_ranges(kmer2indices)
         kmer2ranges_=list(kmer2ranges)
         SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges_, ksize)
-
-        klist2 = assert_kmer(SNPranges2, ksize, kmers2)
+        klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
@@ -148,11 +185,11 @@ def run_KmerAperture(gList, reference, ksize):
         kmer1ranges = get_ranges(kmer1indices)
         kmer1ranges_=list(kmer1ranges)
         SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges_, ksize)
+        klist1, klist1pos = assert_kmer(SNPranges1, ksize, kmers1)
 
-        klist1 = assert_kmer(SNPranges1, ksize, kmers1)
-
-        matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
-
+        middlekinter = set(klist1).intersection(set(klist2))
+        matchedSNPs = int(len(middlekinter)/2)
+        get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2)
 
         result =f"{genome2},{matchedSNPs},{acclength1},{acclength2}\n"
         output.write(result)
