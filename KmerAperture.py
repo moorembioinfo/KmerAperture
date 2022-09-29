@@ -116,14 +116,14 @@ def assert_kmer(kmerranges, k, kmers2):
 
 def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
 
+    SNPs1=0
     SNPs2=0
     SNPs3=0
     SNPs4=0
     kend = (2*k)
     seriessize = range(k+2,kend)
     for L in seriessize:
-        middlekmers1 = []
-        middlekmers2 = []
+        print(L)
         k2_L_ranges = []
         k1_L_ranges = []
         for pair in kmer1ranges:
@@ -140,22 +140,26 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
         spacer = (L-k)
         for pair in k1_L_ranges:
             startpos = pair[0]
-            mkmer1 = kmers1[startpos + (k-1)]
-            mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
+
+            mkmer1 = kmers1[startpos+(k-1)]
             km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers1.extend([mkmer3, mkmer2])
-            a.extend([mkmer1, km1_rc])
+
+            mkmer2 = kmers1[startpos+(k-spacer)-1]
+            km2_rc=screed.rc(mkmer2)
+
+            a.extend([mkmer1, km1_rc, mkmer2, km2_rc])
+
         for pair in k2_L_ranges:
             startpos = pair[0]
-            mkmer1 = kmers2[startpos + (k-1)]
-            mkmer3 = mkmer3[1:spacer] + mkmer3[spacer+1:]
-            km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers2.extend([mkmer3, mkmer2])
-            b.extend([mkmer1, km1_rc])
 
-        denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
+            mkmer1 = kmers2[startpos+(k-1)]
+            km1_rc=screed.rc(mkmer1)
+
+            mkmer2 = kmers2[startpos+(k-spacer)-1]
+            km2_rc=screed.rc(mkmer2)
+
+            b.extend([mkmer1, km1_rc, mkmer2, km2_rc])
+
         pairs_kmers = list(itertools.product(a, b))
         dSNPs = 0
         for pair in pairs_kmers:
@@ -164,12 +168,15 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 if p==g:
                     counter+=1
             snps =k-counter
+            if snps==1:
+                SNPs1+=snps
             if snps==2:
                 SNPs2+=snps
             if snps==3:
                 SNPs3+=snps
             if snps==4:
                 SNPs4+=snps
+        print(SNPs2)
 
     return(SNPs2, SNPs3, SNPs4)
 
