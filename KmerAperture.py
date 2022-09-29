@@ -123,25 +123,31 @@ def assert_kmer(kmerranges, k, kmers2):
 
 def get_SNPs(middlekinter, klist1pos, klist2pos, filename, qfilename):
     relativeSNPpos = []
-
-    #contigspace = 'N'*1000
     sequence=''
     for record in screed.open(filename):
         sequence += record.sequence
     qsequence =''
     for record in screed.open(qfilename):
-        qsequence += record.sequence#+contigspace
-
+        qsequence += record.sequence
     for mkmer in list(middlekinter):
         refpos = klist1pos.get(mkmer)
-        refbase = sequence[refpos-1]
+        refseq = sequence[refpos-5:refpos+4]
         querypos = klist2pos.get(mkmer)
-        querybase = qsequence[querypos-1]
-
-        poss = [refpos,str(refbase),querypos,str(querybase)]
+        queryseq = qsequence[querypos-5:querypos+4]
+        rcseq = screed.rc(queryseq)
+        #Remove middle base and determine strandedness
+        km = queryseq[:4]+queryseq[5:]
+        refkm = refseq[:4]+refseq[5:]
+        rckm=rcseq[:4]+rcseq[5:]
+        SNP=''
+        if km == refkm:
+            SNP=queryseq[4]
+        elif rckm == refkm:
+            SNP=rcseq[4]
+        refbase = refseq[4]
+        poss = [refpos,str(refbase),querypos,str(SNP)]
         if poss not in relativeSNPpos:
             relativeSNPpos.append(poss)
-
     df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
     print(df)
 
