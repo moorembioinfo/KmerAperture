@@ -62,10 +62,14 @@ def build_kmers(sequence, ksize):
 
 def read_kmers_from_file(filename, ksize):
     all_kmers = []
+    #contigspace = 'N'*1000
+
+    sequence=''
     for record in screed.open(filename):
-        sequence = record.sequence
-        kmers = build_kmers(sequence, ksize)
-        all_kmers += kmers
+        sequence += record.sequence#+contigspace
+        #kmers = build_kmers(sequence, ksize)
+        #all_kmers += kmers
+    all_kmers=build_kmers(sequence, ksize)
     return all_kmers
 
 def get_uniques(kmer1set, kmer2set):
@@ -113,35 +117,31 @@ def assert_kmer(kmerranges, k, kmers2):
         mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
         klist.extend([mkmer0, mkmer1])
 
-        positiondict[mkmer0] = (startpos+k) #Should be -1, but snippy output is 1-indexed
+        positiondict[mkmer0] = (startpos+k) #Should be -1, but SNP positions are 1 indexed
         positiondict[mkmer1] = (startpos+k) #-1
     return(klist, positiondict)
 
 def get_SNPs(middlekinter, klist1pos, klist2pos, filename, qfilename):
     relativeSNPpos = []
 
+    #contigspace = 'N'*1000
     sequence=''
     for record in screed.open(filename):
         sequence += record.sequence
     qsequence =''
     for record in screed.open(qfilename):
-        qsequence += record.sequence
-    for mkmer in list(middlekinter):
+        qsequence += record.sequence#+contigspace
 
+    for mkmer in list(middlekinter):
         refpos = klist1pos.get(mkmer)
-        refbase = sequence[refpos]
+        refbase = sequence[refpos-1]
         querypos = klist2pos.get(mkmer)
-        querybase = qsequence[querypos]
+        querybase = qsequence[querypos-1]
 
         poss = [refpos,str(refbase),querypos,str(querybase)]
         if poss not in relativeSNPpos:
-            print(mkmer)
-            print(poss)
             relativeSNPpos.append(poss)
 
-    print(relativeSNPpos)
-    print(len(relativeSNPpos))
-    print(len(middlekinter))
     df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
     print(df)
 
