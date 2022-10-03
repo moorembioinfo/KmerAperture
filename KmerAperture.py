@@ -9,6 +9,7 @@ import time
 import argparse
 import sys
 import itertools
+from collections import defaultdict
 
 
 def add_args(a):
@@ -33,9 +34,10 @@ def add_args(a):
         default=21,
         required=False,
     )
-
     args = parser.parse_args(a)
     return args
+
+
 
 def canonicalise(kmer):
     canonical_kmer=''
@@ -90,6 +92,10 @@ def get_indices(kmeruniq, kmers):
     return indexlist
 
 def get_accessory(kmer1ranges, ksize):
+    '''
+    Find contiguous kmer series indicative of SNPs
+    or accessory
+    '''
     acclength = 0
     allSNPranges = []
     accranges=[]
@@ -104,6 +110,10 @@ def get_accessory(kmer1ranges, ksize):
     return allSNPranges, accranges, acclength
 
 def assert_kmer(kmerranges, k, kmers2):
+    '''
+    Match middle k-mers with middle base removed
+    for both possible strands
+    '''
     klist = []
     positiondict ={}
     for pair in kmerranges:
@@ -121,14 +131,22 @@ def assert_kmer(kmerranges, k, kmers2):
         positiondict[mkmer1] = (startpos+k) #-1
     return(klist, positiondict)
 
-def get_SNPs(middlekinter, klist1pos, klist2pos, filename, qfilename):
-    relativeSNPpos = []
+def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
+    '''
+    Find and extract SNPs estimated by KmerAperture
+    '''
+
+    refdict = {}
+    querydict = {}
+
     sequence=''
-    for record in screed.open(filename):
+    for record in screed.open(reference):
         sequence += record.sequence
+
     qsequence =''
     for record in screed.open(qfilename):
         qsequence += record.sequence
+
     for mkmer in list(middlekinter):
         refpos = klist1pos.get(mkmer)
         refseq = sequence[refpos-5:refpos+4]
@@ -146,16 +164,25 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, filename, qfilename):
             SNP=rcseq[4]
         refbase = refseq[4]
         poss = [refpos,str(refbase),querypos,str(SNP)]
-        if poss not in relativeSNPpos:
-            relativeSNPpos.append(poss)
-    df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
-    print(df)
+        print(poss)
+        #if poss not in relativeSNPpos:
+        #    relativeSNPpos.append(poss)
+
+
+        if not refpos in refdict.keys():
+            refdict[refpos] = refbase
+
+        querydict[refpos] = SNP
+
+    #df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
+    #print(df)
+
+    return(querydict, refdict)
 
 
 def run_KmerAperture(gList, reference, ksize):
 
-    print('Reading in reference genome')
-
+    print(f'Reading in reference genome {reference}')
     kmers1 = read_kmers_from_file(reference, ksize)
     kmers1_=[]
     for kmer in kmers1:
@@ -166,6 +193,10 @@ def run_KmerAperture(gList, reference, ksize):
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
     output.write('gID,matchedSNP,acc1,acc2\n')
+
+
+    querynamedict = {}
+    refdict = {}
 
 
     for genome2 in gList:
@@ -195,16 +226,39 @@ def run_KmerAperture(gList, reference, ksize):
 
         middlekinter = set(klist1).intersection(set(klist2))
         matchedSNPs = int(len(middlekinter)/2)
-        get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2)
+
+        querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
+
+        querynamedict[genome2] = querydict
 
         result =f"{genome2},{matchedSNPs},{acclength1},{acclength2}\n"
         output.write(result)
+
+    #df = pd.DataFrame.from_dict(refdict)
+    df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
+    df.columns = ['refpos','refbase']
+
+    for key in querynamedict:
+        querydict_=querynamedict.get(key)
+        df[key] = df['refpos'].map(querydict_)
+
+        df.loc[df[key].isna(),key] = df['refbase']
+
+
+    df.to_csv('SNPmatrix.polymorphic.csv')
+
 
 if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
     genomedir = args.fastas
+    kmersize = args.kmersize
+    if (kmersize % 2) != 1:
+
+        print('\nPlease enter an odd numbered integer for k\n\nExiting...')
+        exit()
+
     gList =[]
     for filename in os.listdir(genomedir):
         if filename.endswith('.fna') or filename.endswith('.fasta') or filename.endswith('.fas'):
@@ -215,4 +269,4 @@ if __name__=='__main__':
     run_KmerAperture(
         gList,
         reference,
-        args.kmersize)
+        kmersize)
