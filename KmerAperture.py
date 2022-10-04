@@ -4,12 +4,13 @@ import numpy as np
 import screed
 import os
 import random
-from itertools import groupby
 import time
 import argparse
 import sys
 import itertools
-from collections import defaultdict
+import math
+from utils import canonicalise, build_kmers, read_kmers_from_file
+from utils import get_uniques, get_ranges, get_indices
 
 
 def add_args(a):
@@ -38,58 +39,6 @@ def add_args(a):
     return args
 
 
-
-def canonicalise(kmer):
-    canonical_kmer=''
-    try:
-        rc_kmer = screed.rc(kmer)
-        if kmer < rc_kmer:
-            canonical_kmer = kmer
-        else:
-            canonical_kmer = rc_kmer
-    except:
-        pass
-    return canonical_kmer
-
-def build_kmers(sequence, ksize):
-    kmers = []
-    n_kmers = len(sequence) - ksize + 1
-    for i in range(n_kmers):
-        kmer = sequence[i:i + ksize]
-        c_kmer = canonicalise(kmer)
-        #if c_kmer:
-        #    if not 'N' in c_kmer:
-        kmers.append(c_kmer)
-    return kmers
-
-def read_kmers_from_file(filename, ksize):
-    all_kmers = []
-    #contigspace = 'N'*1000
-
-    sequence=''
-    for record in screed.open(filename):
-        sequence += record.sequence#+contigspace
-        #kmers = build_kmers(sequence, ksize)
-        #all_kmers += kmers
-    all_kmers=build_kmers(sequence, ksize)
-    return all_kmers
-
-def get_uniques(kmer1set, kmer2set):
-    kmeruniq = kmer1set - kmer2set
-    return kmeruniq
-
-def get_ranges(lst):
-    pos = (j - i for i, j in enumerate(lst))
-    t = 0
-    for i, els in groupby(pos):
-        l = len(list(els))
-        el = lst[t]
-        t += l
-        yield (el, el+l)
-
-def get_indices(kmeruniq, kmers):
-    indexlist = [i for i, e in enumerate(kmers) if e in kmeruniq]
-    return indexlist
 
 def get_accessory(kmer1ranges, ksize):
     '''
@@ -180,6 +129,7 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     return(querydict, refdict)
 
 
+
 def run_KmerAperture(gList, reference, ksize):
 
     print(f'Reading in reference genome {reference}')
@@ -235,6 +185,8 @@ def run_KmerAperture(gList, reference, ksize):
         output.write(result)
 
     #df = pd.DataFrame.from_dict(refdict)
+
+    print('Generating SNP output...\n')
     df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
     df.columns = ['refpos','refbase']
 
