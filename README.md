@@ -37,6 +37,10 @@ A reference genome and a directory of assembled query genomes (fasta format)
 
 A .csv file with genomeID, estimated SNPs and estimated sequence presence in the reference (acc1) and query genome (acc2)
 
+Optionally output a SNP matrix of polymorphic sites estimated by KmerAperture
+
+...more to come
+
 
 ## Options
 
@@ -45,6 +49,7 @@ Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Desc
 `--fastas` |  `-f` |  Provide path to query fastas directory | ✅
 `--reference` |     `-r` |  Path and file name of fasta reference genome | ✅ | 
 `--kmersize` |      `-k` |  k size |                             | 21
+`--polySNP` |     `-p` |  Optionally output a matrix of estimated polymorphic SNPs sites |   | False
 
 <br />
 <br />
