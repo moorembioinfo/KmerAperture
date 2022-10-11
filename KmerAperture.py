@@ -35,6 +35,13 @@ def add_args(a):
         default=21,
         required=False,
     )
+    parser.add_argument(
+        "--polySNP",
+        "-p",
+        help="Output matrix of polymorphic sites ",
+        default=False,
+        required=False,
+    )
     args = parser.parse_args(a)
     return args
 
@@ -84,14 +91,11 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     '''
     Find and extract SNPs estimated by KmerAperture
     '''
-
     refdict = {}
     querydict = {}
-
     sequence=''
     for record in screed.open(reference):
         sequence += record.sequence
-
     qsequence =''
     for record in screed.open(qfilename):
         qsequence += record.sequence
@@ -102,7 +106,6 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
         querypos = klist2pos.get(mkmer)
         queryseq = qsequence[querypos-5:querypos+4]
         rcseq = screed.rc(queryseq)
-        #Remove middle base and determine strandedness
         km = queryseq[:4]+queryseq[5:]
         refkm = refseq[:4]+refseq[5:]
         rckm=rcseq[:4]+rcseq[5:]
@@ -112,25 +115,15 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
         elif rckm == refkm:
             SNP=rcseq[4]
         refbase = refseq[4]
-        poss = [refpos,str(refbase),querypos,str(SNP)]
-        print(poss)
-        #if poss not in relativeSNPpos:
-        #    relativeSNPpos.append(poss)
-
 
         if not refpos in refdict.keys():
             refdict[refpos] = refbase
-
         querydict[refpos] = SNP
-
-    #df = pd.DataFrame(relativeSNPpos, columns = ['Refpos', 'Refbase', 'Querypos', 'SNP'])
-    #print(df)
 
     return(querydict, refdict)
 
 
-
-def run_KmerAperture(gList, reference, ksize):
+def run_KmerAperture(gList, reference, ksize, polySNPmat):
 
     print(f'Reading in reference genome {reference}')
     kmers1 = read_kmers_from_file(reference, ksize)
@@ -142,12 +135,10 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,matchedSNP,acc1,acc2\n')
-
+    output.write('gID,SNP,acc1,acc2\n')
 
     querynamedict = {}
     refdict = {}
-
 
     for genome2 in gList:
         print(f'Reading in query genome {genome2}')
@@ -186,19 +177,20 @@ def run_KmerAperture(gList, reference, ksize):
 
     #df = pd.DataFrame.from_dict(refdict)
 
-    print('Generating SNP output...\n')
-    df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
-    df.columns = ['refpos','refbase']
+    if polySNPmat:
+        print('Generating SNP output...\n')
+        df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
+        df.columns = ['refpos','refbase']
 
-    for key in querynamedict:
-        querydict_=querynamedict.get(key)
-        df[key] = df['refpos'].map(querydict_)
+        for key in querynamedict:
+            querydict_=querynamedict.get(key)
+            df[key] = df['refpos'].map(querydict_)
 
-        df.loc[df[key].isna(),key] = df['refbase']
+            df.loc[df[key].isna(),key] = df['refbase']
 
 
-    df.to_csv('SNPmatrix.polymorphic.csv')
-
+        df.to_csv('SNPmatrix.polymorphic.csv')
+    print('Finished!')
 
 if __name__=='__main__':
 
@@ -206,6 +198,7 @@ if __name__=='__main__':
     reference =args.reference
     genomedir = args.fastas
     kmersize = args.kmersize
+    polySNPmat = args.polySNP
     if (kmersize % 2) != 1:
 
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
@@ -221,4 +214,5 @@ if __name__=='__main__':
     run_KmerAperture(
         gList,
         reference,
-        kmersize)
+        kmersize,
+        polySNPmat)
