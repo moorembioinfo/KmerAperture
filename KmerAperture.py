@@ -119,7 +119,7 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
     SNPs2=0
     SNPs3=0
     kend = (2*k)
-    for SNPc in [2, 3]
+    for SNPc in [2, 3]:
         seriessize = range(k+2,k*SNPc)
         for L in seriessize:
 
@@ -129,10 +129,10 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 rangediff = pair[1] - pair[0]
                 if rangediff == L:
                     k1_L_ranges.append(pair)
-            for pair in kmer2ranges:
-                rangediff = pair[1] - pair[0]
-                if rangediff == L:
-                    k2_L_ranges.append(pair)
+            for pair2 in kmer2ranges:
+                rangediff2 = pair2[1] - pair2[0]
+                if rangediff2 == L:
+                    k2_L_ranges.append(pair2)
             a =[]
             b = []
             spacer = (L-k)
@@ -140,12 +140,19 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 startpos = pair[0]
                 mkmer1 = kmers1[startpos+(k-1)]
                 km1_rc=screed.rc(mkmer1)
-                a.extend([mkmer1, km1_rc, mkmer2, km2_rc])
-            for pair in k2_L_ranges:
-                startpos = pair[0]
-                mkmer1 = kmers2[startpos+(k-1)]
-                km1_rc=screed.rc(mkmer1)
-                b.extend([mkmer1, km1_rc, mkmer2, km2_rc])
+
+                rmkmer1 = kmers1[startpos+(L-k)]
+                rkm1_rc = screed.rc(rmkmer1)
+                a.extend([mkmer1, km1_rc, rmkmer1, rkm1_rc])
+
+            for pair2 in k2_L_ranges:
+                startpos2 = pair2[0]
+                mkmer2 = kmers2[startpos2+(k-1)]
+                km2_rc=screed.rc(mkmer2)
+
+                rmkmer2=kmers2[startpos+(L-k)]
+                rkm2_rc=screed.rc(rmkmer2)
+                b.extend([mkmer2, km2_rc, rmkmer2, rkm2_rc])
 
             pairs_kmers = list(itertools.product(a, b))
             dSNPs = 0
@@ -158,9 +165,10 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 if snps==SNPc:
                     if SNPc==2:
                         SNPs2+=snps
-                    else:
+                        break
+                    if SNPc==3:
                         SNPs3+=snps
-            print(SNPs2)
+                        break
 
     return(SNPs2, SNPs3)
 
