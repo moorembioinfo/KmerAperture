@@ -119,9 +119,11 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
     SNPs2=0
     SNPs3=0
     kend = (2*k)
+    duplicates = []
     for SNPc in [2, 3]:
         seriessize = range(k+2,k*SNPc)
         for L in seriessize:
+            print(L)
 
             k2_L_ranges = []
             k1_L_ranges = []
@@ -146,6 +148,7 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 a.extend([mkmer1, km1_rc, rmkmer1, rkm1_rc])
 
             for pair2 in k2_L_ranges:
+                print(pair2)
                 startpos2 = pair2[0]
                 mkmer2 = kmers2[startpos2+(k-1)]
                 km2_rc=screed.rc(mkmer2)
@@ -165,11 +168,13 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 if snps==SNPc:
                     if SNPc==2:
                         SNPs2+=snps
+                        if not pair[1] in duplicates:
+                            duplicates.append(pair[1])
                         break
                     if SNPc==3:
                         SNPs3+=snps
                         break
-
+    print(len(duplicates))
     return(SNPs2, SNPs3)
 
 
