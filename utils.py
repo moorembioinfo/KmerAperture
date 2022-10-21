@@ -1,36 +1,29 @@
 from itertools import groupby
 import screed
 import numpy as np
+from Bio.Seq import reverse_complement
 
-
-def canonicalise(kmer):
-    canonical_kmer=''
-    try:
-        rc_kmer = screed.rc(kmer)
-        if kmer < rc_kmer:
-            canonical_kmer = kmer
-        else:
-            canonical_kmer = rc_kmer
-    except:
-        pass
-    return canonical_kmer
+def canon(naivekmers):
+    allkmers=[]
+    for kmer in naivekmers:
+        canonical_kmer=kmer
+        rckmer = str(reverse_complement(kmer))
+        if kmer> rckmer:
+            canonical_kmer=rckmer
+        allkmers.append(canonical_kmer)
+    return allkmers
 
 def build_kmers(sequence, ksize):
     kmers = []
-    n_kmers = len(sequence) - ksize + 1
-    for i in range(n_kmers):
-        kmer = sequence[i:i + ksize]
-        c_kmer = canonicalise(kmer)
-        kmers.append(c_kmer)
+    naivekmers = [sequence[x:x+ksize].upper() for x in range(len(sequence) - ksize + 1)]
+    kmers =canon(naivekmers)
     return kmers
 
 def read_kmers_from_file(filename, ksize):
     all_kmers = []
     sequence=''
     for record in screed.open(filename):
-        sequence += record.sequence#+contigspace
-        #kmers = build_kmers(sequence, ksize)
-        #all_kmers += kmers
+        sequence += record.sequence
     all_kmers=build_kmers(sequence, ksize)
     return all_kmers
 
