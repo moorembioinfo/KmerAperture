@@ -118,6 +118,7 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
 
     SNPs2=0
     SNPs3=0
+    SNPs4=0
     kend = (2*k)
     for SNPc in [2, 3]:
         seriessize = range(k+2,k*SNPc)
@@ -169,8 +170,11 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                     if SNPc==3:
                         SNPs3+=snps
                         break
+                    if SNPc==4:
+                        SNPs4+=SNPc
+                        break
 
-    return(SNPs2, SNPs3)
+    return(SNPs2, SNPs3, SNPs4)
 
 
 def run_KmerAperture(gList, reference, ksize):
@@ -182,7 +186,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,matchedSNP,Jaccard,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
+    output.write('gID,Jaccard,matchedSNP,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -219,7 +223,7 @@ def run_KmerAperture(gList, reference, ksize):
 
         matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
         analysistime = (time.time())-analysistime0
-        denseSNPs2, denseSNPs3 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
+        denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime2 = (time.time())-analysistime0
 
 
@@ -227,7 +231,7 @@ def run_KmerAperture(gList, reference, ksize):
         J = len(kmer1set.intersection(kmer2set))/len(kmer1set.union(kmer2set))
         jtime = time.time()-Jtime0
 
-        result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{acclength1},{acclength2}\n"
+        result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
