@@ -128,7 +128,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     ks = k+2
     ke = (upperboundSNP *(k-1)) + 1
     for L in range(ks, ke):
-        print(L)
         k2_L_ranges = []
         k1_L_ranges = []
         for pair, pair2 in zip(kmer1ranges, kmer2ranges):
@@ -144,11 +143,11 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
         bseqs = []
         for pos in k1_L_ranges:
             exseq = sequence[pos:pos+Lseqlen]
-            rcexseq = screed.rc(exseq)
+            rcexseq = str(reverse_complement(exseq))
             aseqs.extend([exseq, rcexseq])
         for pos in k2_L_ranges:
             exseq = qsequence[pos:pos+Lseqlen]
-            rcexseq = screed.rc(exseq)
+            rcexseq = str(reverse_complement(exseq))
             bseqs.extend([exseq, rcexseq])
 
         if aseqs and bseqs:
