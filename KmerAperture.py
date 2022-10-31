@@ -128,6 +128,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     ks = k+2
     ke = (upperboundSNP *(k-1)) + 1
     for L in range(ks, ke):
+        print(L)
         k2_L_ranges = []
         k1_L_ranges = []
         for pair, pair2 in zip(kmer1ranges, kmer2ranges):
@@ -150,16 +151,15 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
             rcexseq = screed.rc(exseq)
             bseqs.extend([exseq, rcexseq])
 
-
         if aseqs and bseqs:
             pairs_seqs = list(itertools.product(aseqs, bseqs))
-
             for pairseq in pairs_seqs:
                 #print(pairseq)
                 if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
                     pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
                     #print(len(pmindex))
-                    cutoff = round(Lseqlen*0.25)
+                    cutoff = round(Lseqlen*0.15)
+                    #print(f'{L}, {Lseqlen}, {cutoff}')
                     if len(pmindex) < cutoff:
                         outr = list(get_ranges(pmindex))
 
