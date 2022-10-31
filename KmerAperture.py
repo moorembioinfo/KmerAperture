@@ -9,7 +9,7 @@ import time
 import argparse
 import sys
 import itertools
-
+from Bio.Seq import reverse_complement
 
 def add_args(a):
     parser = argparse.ArgumentParser(description="KmerAperture")
@@ -37,36 +37,30 @@ def add_args(a):
     args = parser.parse_args(a)
     return args
 
-def canonicalise(kmer):
-    canonical_kmer=''
-    try:
-        rc_kmer = screed.rc(kmer)
-        if kmer < rc_kmer:
-            canonical_kmer = kmer
-        else:
-            canonical_kmer = rc_kmer
-    except:
-        pass
-    return canonical_kmer
+def canon(naivekmers):
+    allkmers=[]
+    for kmer in naivekmers:
+        canonical_kmer=kmer
+        rckmer = str(reverse_complement(kmer))
+        if kmer> rckmer:
+            canonical_kmer=rckmer
+        allkmers.append(canonical_kmer)
+    return allkmers
 
 def build_kmers(sequence, ksize):
     kmers = []
-    n_kmers = len(sequence) - ksize + 1
-    for i in range(n_kmers):
-        kmer = sequence[i:i + ksize]
-        c_kmer = canonicalise(kmer)
-        if c_kmer:
-            if not 'N' in c_kmer:
-                kmers.append(c_kmer)
+    naivekmers = [sequence[x:x+ksize].upper() for x in range(len(sequence) - ksize + 1)]
+    kmers =canon(naivekmers)
     return kmers
 
 def read_kmers_from_file(filename, ksize):
     all_kmers = []
+    sequence=''
     for record in screed.open(filename):
-        sequence = record.sequence
-        kmers = build_kmers(sequence, ksize)
-        all_kmers += kmers
+        sequence += record.sequence
+    all_kmers=build_kmers(sequence, ksize)
     return all_kmers
+
 
 def get_uniques(kmer1set, kmer2set):
     kmeruniq = kmer1set - kmer2set
@@ -114,18 +108,92 @@ def assert_kmer(kmerranges, k, kmers2):
         klist.extend([mkmer0, mkmer1])#
     return(klist)
 
+
+def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename):
+
+    '''
+    Find contiguous kmer series from size k+2 to n(k-1)+1
+    Extract full sequence and pattern match SNPs for count and extract
+    '''
+    SNPs = 0
+
+    sequence=''
+    for record in screed.open(reference):
+        sequence += record.sequence
+    qsequence =''
+    for record in screed.open(qfilename):
+        qsequence += record.sequence
+
+    upperboundSNP = 10
+    ks = k+2
+    ke = (upperboundSNP *(k-1)) + 1
+    for L in range(ks, ke):
+        k2_L_ranges = []
+        k1_L_ranges = []
+        for pair, pair2 in zip(kmer1ranges, kmer2ranges):
+            rangediff1 = pair[1] - pair[0]
+            if rangediff1 == L:
+                k1_L_ranges.append(pair[0])
+            rangediff2 = pair2[1] - pair2[0]
+            if rangediff2 == L:
+                k2_L_ranges.append(pair2[0])
+
+        Lseqlen = L+(k-1)
+        aseqs = []
+        bseqs = []
+        for pos in k1_L_ranges:
+            exseq = sequence[pos:pos+Lseqlen]
+            rcexseq = screed.rc(exseq)
+            aseqs.extend([exseq, rcexseq])
+        for pos in k2_L_ranges:
+            exseq = qsequence[pos:pos+Lseqlen]
+            rcexseq = screed.rc(exseq)
+            bseqs.extend([exseq, rcexseq])
+
+
+        if aseqs and bseqs:
+            pairs_seqs = list(itertools.product(aseqs, bseqs))
+
+            for pairseq in pairs_seqs:
+                #print(pairseq)
+                if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
+                    pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
+                    #print(len(pmindex))
+                    cutoff = round(Lseqlen*0.25)
+                    if len(pmindex) < cutoff:
+                        outr = list(get_ranges(pmindex))
+
+                        noindel =True
+                        indellen=0
+                        for r in outr:
+                            if r[1]-r[0] >1:
+                                print('Indel!')
+                                noindel=False
+                                indellen+=(r[1]-r[0])
+                        if noindel:
+                            SNPs+=len(pmindex)
+                            break
+                        else:
+                            if len(pmindex) > indellen:
+                                SNPs+=(len(pmindex)-indellen)
+                            break
+
+
+    return(SNPs)
+
+
+
 def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
 
     SNPs2=0
     SNPs3=0
     SNPs4=0
-    kend = (2*k)
     duplicates = []
-    for SNPc in [2, 3]:
-        seriessize = range(k+2,k*SNPc)
-        for L in seriessize:
-            print(L)
-
+    for SNPc in [2, 3, 4]:
+        ksend = (SNPc *(k-1)) + 1
+        ksstart = SNPc+k
+        seriesrange = range(ksstart,ksend)
+        for L in seriesrange:
             k2_L_ranges = []
             k1_L_ranges = []
             for pair in kmer1ranges:
@@ -149,12 +217,11 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 a.extend([mkmer1, km1_rc, rmkmer1, rkm1_rc])
 
             for pair2 in k2_L_ranges:
-                print(pair2)
                 startpos2 = pair2[0]
                 mkmer2 = kmers2[startpos2+(k-1)]
                 km2_rc=screed.rc(mkmer2)
 
-                rmkmer2=kmers2[startpos+(L-k)]
+                rmkmer2=kmers2[startpos2+(L-k)]
                 rkm2_rc=screed.rc(rmkmer2)
                 b.extend([mkmer2, km2_rc, rmkmer2, rkm2_rc])
 
@@ -169,8 +236,6 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                 if snps==SNPc:
                     if SNPc==2:
                         SNPs2+=snps
-                        if not pair[1] in duplicates:
-                            duplicates.append(pair[1])
                         break
                     if SNPc==3:
                         SNPs3+=snps
@@ -178,7 +243,6 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
                     if SNPc==4:
                         SNPs4+=SNPc
                         break
-
     return(SNPs2, SNPs3, SNPs4)
 
 
@@ -191,7 +255,7 @@ def run_KmerAperture(gList, reference, ksize):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,Jaccard,matchedSNP,denseSNPs2,denseSNPs3,denseSNPs4,acc1,acc2\n')
+    output.write('gID,Jaccard,matchedSNP,denseSNPs2,denseSNPs3,denseSNPs4,newdense,acc1,acc2\n')
 
     outname2 = f'./{reference}_{ksize}_timings.csv'
     output2=open(outname2, "w")
@@ -231,12 +295,14 @@ def run_KmerAperture(gList, reference, ksize):
         denseSNPs2, denseSNPs3, denseSNPs4 = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
         analysistime2 = (time.time())-analysistime0
 
+        newdense = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
+
 
         Jtime0 = time.time()
         J = len(kmer1set.intersection(kmer2set))/len(kmer1set.union(kmer2set))
         jtime = time.time()-Jtime0
 
-        result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{acclength1},{acclength2}\n"
+        result =f"{genome2},{J},{matchedSNPs},{denseSNPs2},{denseSNPs3},{denseSNPs4},{newdense},{acclength1},{acclength2}\n"
         output.write(result)
         print(result)
 
