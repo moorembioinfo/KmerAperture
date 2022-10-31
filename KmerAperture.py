@@ -177,7 +177,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                                 SNPs+=(len(pmindex)-indellen)
                             break
 
-
     return(SNPs)
 
 
