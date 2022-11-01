@@ -102,7 +102,7 @@ def assert_kmer(kmerranges, k, kmers2):
         endpos = pair[1]
         kgap = int((k-1)/2)
         km = kmers2[startpos+kgap]
-        km_rc = screed.rc(km)
+        km_rc = str(reverse_complement(km))
         mkmer0 = km[:kgap] + km[kgap+1:]
         mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
         klist.extend([mkmer0, mkmer1])#
@@ -116,6 +116,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     Extract full sequence and pattern match SNPs for count and extract
     '''
     SNPs = 0
+    Ns = 0
 
     sequence=''
     for record in screed.open(reference):
@@ -166,7 +167,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                         indellen=0
                         for r in outr:
                             if r[1]-r[0] >1:
-                                print('Indel!')
+                                #print('Indel!')
                                 noindel=False
                                 indellen+=(r[1]-r[0])
                         if noindel:
@@ -208,19 +209,19 @@ def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
             for pair in k1_L_ranges:
                 startpos = pair[0]
                 mkmer1 = kmers1[startpos+(k-1)]
-                km1_rc=screed.rc(mkmer1)
+                km1_rc= str(reverse_complement(mkmer1))
 
                 rmkmer1 = kmers1[startpos+(L-k)]
-                rkm1_rc = screed.rc(rmkmer1)
+                rkm1_rc = str(reverse_complement(rmkmer1))
                 a.extend([mkmer1, km1_rc, rmkmer1, rkm1_rc])
 
             for pair2 in k2_L_ranges:
                 startpos2 = pair2[0]
                 mkmer2 = kmers2[startpos2+(k-1)]
-                km2_rc=screed.rc(mkmer2)
+                km2_rc=str(reverse_complement(mkmer2))
 
                 rmkmer2=kmers2[startpos2+(L-k)]
-                rkm2_rc=screed.rc(rmkmer2)
+                rkm2_rc= str(reverse_complement(rmkmer2))
                 b.extend([mkmer2, km2_rc, rmkmer2, rkm2_rc])
 
             pairs_kmers = list(itertools.product(a, b))
