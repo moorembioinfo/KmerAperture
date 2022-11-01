@@ -2,6 +2,8 @@ from itertools import groupby
 import screed
 import numpy as np
 from Bio.Seq import reverse_complement
+import os
+import pandas as pd
 
 def canon(naivekmers):
     allkmers=[]
@@ -43,3 +45,17 @@ def get_ranges(lst):
 def get_indices(kmeruniq, kmers):
     indexlist = [i for i, e in enumerate(kmers) if e in kmeruniq]
     return indexlist
+
+def precluster(filelist, cutoff):
+
+    print('Running sourmash sketch...\n')
+    scmd = 'sourmash sketch dna -p k=31'
+    os.system(scmd)
+    print('Running sourmash compare...\n')
+    ccmd = 'sourmash compare --csv precluster_sm.csv *sig'
+    os.system(ccmd)
+    os.remove('*sig')
+
+    df=pd.read_csv('precluster_sm.csv')
+    df.index = df.columns
+    
