@@ -4,11 +4,13 @@ import numpy as np
 import screed
 import os
 import random
-from itertools import groupby
 import time
 import argparse
 import sys
 import itertools
+import math
+from utils import canonicalise, build_kmers, read_kmers_from_file
+from utils import get_uniques, get_ranges, get_indices
 
 
 def add_args(a):
@@ -33,59 +35,23 @@ def add_args(a):
         default=21,
         required=False,
     )
-
+    parser.add_argument(
+        "--polySNP",
+        "-p",
+        help="Output matrix of polymorphic sites ",
+        default=False,
+        required=False,
+    )
     args = parser.parse_args(a)
     return args
 
-def canonicalise(kmer):
-    canonical_kmer=''
-    try:
-        rc_kmer = screed.rc(kmer)
-        if kmer < rc_kmer:
-            canonical_kmer = kmer
-        else:
-            canonical_kmer = rc_kmer
-    except:
-        pass
-    return canonical_kmer
 
-def build_kmers(sequence, ksize):
-    kmers = []
-    n_kmers = len(sequence) - ksize + 1
-    for i in range(n_kmers):
-        kmer = sequence[i:i + ksize]
-        c_kmer = canonicalise(kmer)
-        if c_kmer:
-            if not 'N' in c_kmer:
-                kmers.append(c_kmer)
-    return kmers
-
-def read_kmers_from_file(filename, ksize):
-    all_kmers = []
-    for record in screed.open(filename):
-        sequence = record.sequence
-        kmers = build_kmers(sequence, ksize)
-        all_kmers += kmers
-    return all_kmers
-
-def get_uniques(kmer1set, kmer2set):
-    kmeruniq = kmer1set - kmer2set
-    return kmeruniq
-
-def get_ranges(lst):
-    pos = (j - i for i, j in enumerate(lst))
-    t = 0
-    for i, els in groupby(pos):
-        l = len(list(els))
-        el = lst[t]
-        t += l
-        yield (el, el+l)
-
-def get_indices(kmeruniq, kmers):
-    indexlist = [i for i, e in enumerate(kmers) if e in kmeruniq]
-    return indexlist
 
 def get_accessory(kmer1ranges, ksize):
+    '''
+    Find contiguous kmer series indicative of SNPs
+    or accessory
+    '''
     acclength = 0
     allSNPranges = []
     accranges=[]
@@ -95,13 +61,17 @@ def get_accessory(kmer1ranges, ksize):
             allSNPranges.append(pair)
         if (rangediff>=(ksize*2)):
             acclength+=rangediff
-            acclength +=(ksize-1)
+            acclength -=(ksize-1)
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
-
 def assert_kmer(kmerranges, k, kmers2):
+    '''
+    Match middle k-mers with middle base removed
+    for both possible strands
+    '''
     klist = []
+    positiondict ={}
     for pair in kmerranges:
         kp=[]
         startpos = pair[0]
@@ -111,98 +81,81 @@ def assert_kmer(kmerranges, k, kmers2):
         km_rc = screed.rc(km)
         mkmer0 = km[:kgap] + km[kgap+1:]
         mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
-        klist.extend([mkmer0, mkmer1])#
-    return(klist)
+        klist.extend([mkmer0, mkmer1])
 
-def find_dense_SNP(kmer2ranges, kmer1ranges, k, kmers2, kmers1):
+        positiondict[mkmer0] = (startpos+k) #Should be -1, but SNP positions are 1 indexed
+        positiondict[mkmer1] = (startpos+k) #-1
+    return(klist, positiondict)
 
-    SNPs=0
-    kend = (2*k)
-    seriessize = range(k+2,kend)
+def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
+    '''
+    Find and extract SNPs estimated by KmerAperture
+    '''
+    refdict = {}
+    querydict = {}
+    sequence=''
+    for record in screed.open(reference):
+        sequence += record.sequence
+    qsequence =''
+    for record in screed.open(qfilename):
+        qsequence += record.sequence
 
-    for L in seriessize:
-        middlekmers1 = []
-        middlekmers2 = []
-        k2_L_ranges = []
-        k1_L_ranges = []
-        for pair in kmer1ranges:
-            rangediff = pair[1] - pair[0]
-            if rangediff == L:
-                k1_L_ranges.append(pair)
-        for pair in kmer2ranges:
-            rangediff = pair[1] - pair[0]
-            if rangediff == L:
-                k2_L_ranges.append(pair)
+    for mkmer in list(middlekinter):
+        refpos = klist1pos.get(mkmer)
+        refseq = sequence[refpos-5:refpos+4]
+        querypos = klist2pos.get(mkmer)
+        queryseq = qsequence[querypos-5:querypos+4]
+        rcseq = screed.rc(queryseq)
+        km = queryseq[:4]+queryseq[5:]
+        refkm = refseq[:4]+refseq[5:]
+        rckm=rcseq[:4]+rcseq[5:]
+        SNP=''
+        if km == refkm:
+            SNP=queryseq[4]
+        elif rckm == refkm:
+            SNP=rcseq[4]
+        refbase = refseq[4]
 
-        #Space between SNPs at L=k+2  is L-k-1. But for python, +1
-        a =[]
-        b = []
-        spacer = (L-k)
-        for pair in k1_L_ranges:
-            startpos = pair[0]
-            mkmer1 = kmers1[startpos + (k-1)]
-            mkmer3 = mkmer1[1:spacer] + mkmer1[spacer+1:]
-            km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers1.extend([mkmer3, mkmer2])
-            a.extend([mkmer1, km1_rc])
-        for pair in k2_L_ranges:
-            startpos = pair[0]
-            mkmer1 = kmers2[startpos + (k-1)]
-            mkmer3 = mkmer3[1:spacer] + mkmer3[spacer+1:]
-            km1_rc=screed.rc(mkmer1)
-            mkmer2 = km1_rc[1:spacer] + km1_rc[spacer+1:]
-            middlekmers2.extend([mkmer3, mkmer2])
-            b.extend([mkmer1, km1_rc])
+        if not refpos in refdict.keys():
+            refdict[refpos] = refbase
+        querydict[refpos] = SNP
 
-        denseSNPs = len(set(middlekmers1).intersection(set(middlekmers2)))
-        pairs_kmers = list(itertools.product(a, b))
-        dSNPs = 0
-        for pair in pairs_kmers:
-            counter =0
-            for p, g in zip(pair[0], pair[1]):
-                if p==g:
-                    counter+=1
-            if (counter>=(k-3)) & (counter<k):
-                dSNPs+=counter
-                SNPs+=counter
-
-    return(SNPs)
+    return(querydict, refdict)
 
 
-def run_KmerAperture(gList, reference, ksize):
+def run_KmerAperture(gList, reference, ksize, polySNPmat):
 
-    print('Reading in file 1')
-
+    print(f'Reading in reference genome {reference}')
     kmers1 = read_kmers_from_file(reference, ksize)
-    kmer1set=set(kmers1)
+    kmers1_=[]
+    for kmer in kmers1:
+        if not 'N' in kmer:
+            kmers1_.append(kmer)
+    kmer1set=set(kmers1_)
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,matchedSNP,denseSNPs,acc1,acc2\n')
+    output.write('gID,SNP,acc1,acc2\n')
 
-    outname2 = f'./{reference}_{ksize}_timings.csv'
-    output2=open(outname2, "w")
-    output2.write('Timetoread,timeforset,timeforSNP\n')
-
+    querynamedict = {}
+    refdict = {}
 
     for genome2 in gList:
         print(f'Reading in query genome {genome2}')
-
-        time0 = time.time()
         kmers2 = read_kmers_from_file(genome2, ksize)
-        kmer2set=set(kmers2)
-        readtime= (time.time())-time0
+        kmers2_=[]
+        for kmer in kmers2:
+            if not 'N' in kmer:
+                kmers2_.append(kmer)
+        kmer2set=set(kmers2_)
 
-        analysistime0 =time.time()
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
         kmer2ranges_=list(kmer2ranges)
         SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges_, ksize)
-
-        klist2 = assert_kmer(SNPranges2, ksize, kmers2)
+        klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
@@ -210,27 +163,47 @@ def run_KmerAperture(gList, reference, ksize):
         kmer1ranges = get_ranges(kmer1indices)
         kmer1ranges_=list(kmer1ranges)
         SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges_, ksize)
+        klist1, klist1pos = assert_kmer(SNPranges1, ksize, kmers1)
 
-        klist1 = assert_kmer(SNPranges1, ksize, kmers1)
+        middlekinter = set(klist1).intersection(set(klist2))
+        matchedSNPs = int(len(middlekinter)/2)
 
-        matchedSNPs = int(len(set(klist1).intersection(set(klist2)))/2)
-        denseSNPs = find_dense_SNP(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1)
-        analysistime = (time.time())-analysistime0
+        querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
-        result =f"{genome2},{matchedSNPs},{denseSNPs},{acclength1},{acclength2}\n"
+        querynamedict[genome2] = querydict
+
+        result =f"{genome2},{matchedSNPs},{acclength1},{acclength2}\n"
         output.write(result)
-        print(result)
 
-        timeresult =f"{readtime},{analysistime}\n"
-        output2.write(timeresult)
-        print(timeresult)
+    #df = pd.DataFrame.from_dict(refdict)
 
+    if polySNPmat:
+        print('Generating SNP output...\n')
+        df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
+        df.columns = ['refpos','refbase']
+
+        for key in querynamedict:
+            querydict_=querynamedict.get(key)
+            df[key] = df['refpos'].map(querydict_)
+
+            df.loc[df[key].isna(),key] = df['refbase']
+
+
+        df.to_csv('SNPmatrix.polymorphic.csv')
+    print('Finished!')
 
 if __name__=='__main__':
 
     args = add_args(sys.argv[1:])
     reference =args.reference
     genomedir = args.fastas
+    kmersize = args.kmersize
+    polySNPmat = args.polySNP
+    if (kmersize % 2) != 1:
+
+        print('\nPlease enter an odd numbered integer for k\n\nExiting...')
+        exit()
+
     gList =[]
     for filename in os.listdir(genomedir):
         if filename.endswith('.fna') or filename.endswith('.fasta') or filename.endswith('.fas'):
@@ -241,4 +214,5 @@ if __name__=='__main__':
     run_KmerAperture(
         gList,
         reference,
-        args.kmersize)
+        kmersize,
+        polySNPmat)
