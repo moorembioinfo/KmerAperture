@@ -13,10 +13,15 @@ KmerAperture.py is written in python3 and requires the following python packages
 > - numpy
 > - screed
 > - pandas
+
+
 And for preclustering:
+
 > - matplotlib
 > - scipy
 > - networkX  
+
+
 And sourmash: https://github.com/sourmash-bio/sourmash
 
 
