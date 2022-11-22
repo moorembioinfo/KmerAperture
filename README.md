@@ -12,17 +12,7 @@ KmerAperture.py is written in python3 and requires the following python packages
 
 > - numpy
 > - screed
-> - pandas
-
-
-And for preclustering:
-
-> - matplotlib
-> - scipy
-> - networkX  
-
-
-And sourmash: https://github.com/sourmash-bio/sourmash
+> - pandas 
 
 
 ## Usage
@@ -75,6 +65,16 @@ Optionally output a SNP matrix of polymorphic sites estimated by KmerAperture
 
 ## Pre-cluster (suspected) diverse genomes prior to KmerAperture
 
+Install sourmash (https://github.com/sourmash-bio/sourmash):
+
+```console
+conda install -c conda-forge -c bioconda sourmash
+```
+
+And the python package:
+
+> - networkX
+
 Run:
 
 ```shell
@@ -84,7 +84,7 @@ python sourmash_precluster.py --fastas <fasta dir>
 The output is a heirarchical dendrogram (UPGMA) of your genomes MinHash (Jaccard) distances. Select a clustering threshold that cuts across long branches (major lineages). Then cluster based on this threshold with:
 
 ```shell
-python sourmash_precluster.py --fastas <fasta dir> --refine <threshold>
+python sourmash_precluster.py --fastas <fasta dir> --threshold <threshold>
 ```
 <br />
 <br />
