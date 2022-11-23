@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 import numpy as np
 import argparse
 import os, sys
+
 
 def add_args(a):
     parser = argparse.ArgumentParser(description="Precluster")
     parser.add_argument(
         "--fastas",
         help="Path to fasta dir ",
-        required=True,
+        required=False,
     )
     parser.add_argument(
         "--threshold",
@@ -23,56 +24,42 @@ def add_args(a):
 
 def precluster(filelist):
     print('Running sourmash sketch...\n')
-    scmd = f'sourmash sketch dna -p k=31 {" ".join(filelist)}'
-    os.system(scmd)
-    #print(scmd)
+    for f in filelist:
+        fn = f.split('/')[-1]
+        scmd = f'sourmash sketch dna -p k=31 -o {fn}.sig {f}'
+        os.system(scmd)
+        #print(scmd)
+    pathex = filelist[0]
+    path='/'.join(pathex.split('/')[0:-1])
     print('Running sourmash compare...\n')
-    ccmd = 'sourmash compare --csv precluster_sm.csv *sig'
+    ccmd = f'sourmash compare --csv precluster_sm.csv *sig'
     os.system(ccmd)
-    #os.remove('*sig')
 
-def dendro(threshold, ngenomes):
+def dendro(ngenomes):
 
-    if threshold:
-        #fh = open('fulllinkagearray.txt')
-        #Z = fh.readlines()[0].rstrip()
-        
-        df=pd.read_csv('precluster_sm.csv')
-        df.index = df.columns
-        Z = linkage(df, 'average')
+    df=pd.read_csv('precluster_sm.csv')
+    df.index = df.columns
+    print(df.head)
+    Z = linkage(df, 'average')
+    print(Z)
+    w = int(ngenomes /20)
+    if w<20:
+        w=20
+    fig, ax = plt.subplots(figsize=(w, 10))                                                                       
+    plt.title(f'Full dendrogram (UPGMA)')                                                                             
+    plt.ylabel('Distance')                                                                                  
+    d1 = dendrogram(Z, leaf_rotation=90, labels=df.index, leaf_font_size=2)  
+    plt.savefig(f'Full_dendrogram.png', dpi=400)
+    plt.close()
 
-        #fig, ax = plt.subplots(figsize=(20, 10))
-        #plt.title(f'Full dendrogram')
-        #plt.ylabel('Distance (UPGMA)')
-        #plt = dendrogram(Z, leaf_rotation=90)
-        #plt.savefig('fulldendrogram.png', dpi=400)
-        #plt.close()
-
-        fig, ax = plt.subplots(figsize=(20, 10))
-        plt.title(f'Truncated dendrogram')
-        plt.ylabel('Distance (UPGMA)')
-        d2 = dendrogram(Z, leaf_rotation=90)
-        plt.savefig(f'truncated_level_{threshold}.png', dpi=400)
-        plt.close()
-    else:
-        
-        df=pd.read_csv('precluster_sm.csv')
-        df.index = df.columns
-        Z = linkage(df, 'average')
-        outname='fulllinkagearray.txt'
-        output=open(outname, "w")
-        #output.write(Z)
-        output.close()
-
-        w = int(ngenomes /10)
-        
-        fig, ax = plt.subplots(figsize=(w, 10))                                                                       
-        plt.title(f'Full dendrogram')                                                                             
-        plt.ylabel('Distance (UPGMA)')                                                                                  
-        d1 = dendrogram(Z, leaf_rotation=90)                                                                          
-        plt.savefig(f'Full_dendrogram.png', dpi=400)
-        plt.close()
-
+def cluster_genomes(threshold):
+    df=pd.read_csv('precluster_sm.csv')
+    df.index = df.columns
+    Z = linkage(df, 'average')
+    labels = fcluster(Z, t=threshold, criterion='distance') 
+    print(labels)
+    df['clusters'] = labels
+    df.to_csv('sourmashclusters.csv')
 
 if __name__=='__main__':
 
@@ -86,8 +73,9 @@ if __name__=='__main__':
             gList.append(genomedir + filename)
     print(f"Found {len(gList)} genomes for comparison")
 
+
     if threshold:
-        dendro(threshold, refine)
+        cluster_genomes(threshold)
     else:
         precluster(gList)
-        dendro(threshold, len(gList))
+        dendro(len(gList))
