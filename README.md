@@ -71,10 +71,6 @@ Install sourmash (https://github.com/sourmash-bio/sourmash):
 conda install -c conda-forge -c bioconda sourmash
 ```
 
-And the python package:
-
-> - networkX
-
 Run:
 
 ```shell
@@ -86,6 +82,10 @@ The output is a heirarchical dendrogram (UPGMA) of your genomes MinHash (Jaccard
 ```shell
 python sourmash_precluster.py --fastas <fasta dir> --threshold <threshold>
 ```
+
+Obtain the threshold for clustering by viewing the dendrogram and selecting a distance that cuts horizontally through blue lines only. You may also assess the reference placement with preclustering and consider a more appropriate reference for genome clusters it's not included in
+
+
 <br />
 <br />
 
