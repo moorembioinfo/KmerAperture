@@ -9,3 +9,7 @@ dependencies:
   - numpy
   - screed
   - pandas
+  - scipy
+  - matplotlib
+  - networkX
+
