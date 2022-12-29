@@ -9,8 +9,10 @@ import argparse
 import sys
 import itertools
 import math
-from utils import canonicalise, build_kmers, read_kmers_from_file
+from utils import canon, build_kmers, read_kmers_from_file
 from utils import get_uniques, get_ranges, get_indices
+from Bio.Seq import reverse_complement
+
 
 
 def add_args(a):
@@ -86,6 +88,78 @@ def assert_kmer(kmerranges, k, kmers2):
         positiondict[mkmer0] = (startpos+k) #Should be -1, but SNP positions are 1 indexed
         positiondict[mkmer1] = (startpos+k) #-1
     return(klist, positiondict)
+
+def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename):
+
+    '''
+    Find contiguous kmer series from size k+2 to n(k-1)+1
+    Extract full sequence and pattern match SNPs for count and extract
+    '''
+    SNPs = 0
+    Ns = 0
+
+    sequence=''
+    for record in screed.open(reference):
+        sequence += record.sequence
+    qsequence =''
+    for record in screed.open(qfilename):
+        qsequence += record.sequence
+
+    upperboundSNP = 10
+    ks = k+2
+    ke = (upperboundSNP *(k-1)) + 1
+    for L in range(ks, ke):
+        k2_L_ranges = []
+        k1_L_ranges = []
+        for pair, pair2 in zip(kmer1ranges, kmer2ranges):
+            rangediff1 = pair[1] - pair[0]
+            if rangediff1 == L:
+                k1_L_ranges.append(pair[0])
+            rangediff2 = pair2[1] - pair2[0]
+            if rangediff2 == L:
+                k2_L_ranges.append(pair2[0])
+
+        Lseqlen = L+(k-1)
+        aseqs = []
+        bseqs = []
+        for pos in k1_L_ranges:
+            exseq = sequence[pos:pos+Lseqlen]
+            rcexseq = str(reverse_complement(exseq))
+            aseqs.extend([exseq, rcexseq])
+        for pos in k2_L_ranges:
+            exseq = qsequence[pos:pos+Lseqlen]
+            rcexseq = str(reverse_complement(exseq))
+            bseqs.extend([exseq, rcexseq])
+
+        if aseqs and bseqs:
+            pairs_seqs = list(itertools.product(aseqs, bseqs))
+            for pairseq in pairs_seqs:
+                #print(pairseq)
+                if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
+                    pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
+                    #print(len(pmindex))
+                    cutoff = round(Lseqlen*0.15)
+                    #print(f'{L}, {Lseqlen}, {cutoff}')
+                    if len(pmindex) < cutoff:
+                        outr = list(get_ranges(pmindex))
+
+                        noindel =True
+                        indellen=0
+                        for r in outr:
+                            if r[1]-r[0] >1:
+                                #print('Indel!')
+                                noindel=False
+                                indellen+=(r[1]-r[0])
+                        if noindel:
+                            SNPs+=len(pmindex)
+                            break
+                        else:
+                            if len(pmindex) > indellen:
+                                SNPs+=(len(pmindex)-indellen)
+                            break
+
+    return(SNPs)
+
 
 def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     '''
@@ -172,7 +246,11 @@ def run_KmerAperture(gList, reference, ksize, polySNPmat):
 
         querynamedict[genome2] = querydict
 
-        result =f"{genome2},{matchedSNPs},{acclength1},{acclength2}\n"
+        newdense = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
+
+        SNPs = matchedSNPs+newdense
+
+        result =f"{genome2},{SNPs},{acclength1},{acclength2}\n"
         output.write(result)
 
     #df = pd.DataFrame.from_dict(refdict)
