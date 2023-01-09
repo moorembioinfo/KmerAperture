@@ -267,7 +267,7 @@ def run_KmerAperture(gList, reference, ksize, polySNPmat):
             df.loc[df[key].isna(),key] = df['refbase']
 
 
-        df.to_csv('SNPmatrix.polymorphic.csv')
+        df.to_csv(f'./{reference}_{ksize}.snps.csv')
     print('Finished!')
 
 if __name__=='__main__':
