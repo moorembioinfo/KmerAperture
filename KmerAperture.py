@@ -2,7 +2,6 @@
 import pandas as pd
 import numpy as np
 import screed
-import os
 import random
 import time
 import argparse
@@ -12,6 +11,9 @@ import math
 from utils import canon, build_kmers, read_kmers_from_file
 from utils import get_uniques, get_ranges, get_indices
 from Bio.Seq import reverse_complement
+import os
+import subprocess
+dir_path = str(os.path.dirname(os.path.realpath(__file__)))
 
 
 
@@ -38,16 +40,13 @@ def add_args(a):
         required=False,
     )
     parser.add_argument(
-        "--polySNP",
-        "-p",
-        help="Output matrix of polymorphic sites ",
+        "--pyonly",
+        "-py",
+        help="Run KmerAperture in python only. Much slower than using the parser",
         default=False,
-        required=False,
     )
     args = parser.parse_args(a)
     return args
-
-
 
 def get_accessory(kmer1ranges, ksize):
     '''
@@ -196,27 +195,55 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
 
     return(querydict, refdict)
 
+def outputs(refdict, querynamedict):
+    '''
+    Generate kmeraperture outputs
+    '''
+    print('Generating SNP output...\n')
+    df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
+    df.columns = ['refpos','refbase']
+    for key in querynamedict:
+        querydict_=querynamedict.get(key)
+        df[key] = df['refpos'].map(querydict_)
+        df.loc[df[key].isna(),key] = df['refbase']
+    df.to_csv('SNPmatrix.polymorphic.csv')
 
-def run_KmerAperture(gList, reference, ksize, polySNPmat):
+
+    print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
+
+
+
+def run_KmerAperture(gList, reference, ksize, pyonly):
 
     print(f'Reading in reference genome {reference}')
-    kmers1 = read_kmers_from_file(reference, ksize)
+    if pyonly:
+        kmers1 = read_kmers_from_file(reference, ksize)
+    else:
+
+        ocamlparser = dir_path+'/parser/KmerApertureParser'
+        proc = subprocess.Popen([ocamlparser, reference, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
+        kmers1 = proc.stdout.read().split()
     kmers1_=[]
     for kmer in kmers1:
         if not 'N' in kmer:
             kmers1_.append(kmer)
     kmer1set=set(kmers1_)
 
+
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
     output.write('gID,SNP,acc1,acc2\n')
-
     querynamedict = {}
     refdict = {}
 
     for genome2 in gList:
+        #Generate canonical kmers for query genome
         print(f'Reading in query genome {genome2}')
-        kmers2 = read_kmers_from_file(genome2, ksize)
+        if pyonly:
+            kmers2 = read_kmers_from_file(genome2, ksize)
+        else:
+            proc = subprocess.Popen([ocamlparser, genome2, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
+            kmers2 = proc.stdout.read().split()
         kmers2_=[]
         for kmer in kmers2:
             if not 'N' in kmer:
@@ -255,20 +282,10 @@ def run_KmerAperture(gList, reference, ksize, polySNPmat):
 
     #df = pd.DataFrame.from_dict(refdict)
 
-    if polySNPmat:
-        print('Generating SNP output...\n')
-        df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
-        df.columns = ['refpos','refbase']
-
-        for key in querynamedict:
-            querydict_=querynamedict.get(key)
-            df[key] = df['refpos'].map(querydict_)
-
-            df.loc[df[key].isna(),key] = df['refbase']
-
-
-        df.to_csv('SNPmatrix.polymorphic.csv')
-    print('Finished!')
+    outputs(
+    refdict,
+    querynamedict
+    )
 
 if __name__=='__main__':
 
@@ -276,9 +293,9 @@ if __name__=='__main__':
     reference =args.reference
     genomedir = args.fastas
     kmersize = args.kmersize
-    polySNPmat = args.polySNP
-    if (kmersize % 2) != 1:
+    pyonly = args.pyonly
 
+    if (kmersize % 2) != 1:
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
         exit()
 
@@ -293,4 +310,4 @@ if __name__=='__main__':
         gList,
         reference,
         kmersize,
-        polySNPmat)
+        pyonly)
