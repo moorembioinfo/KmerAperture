@@ -13,7 +13,7 @@ KmerAperture.py is written in python3 and requires the following python packages
 > - numpy
 > - screed
 > - pandas 
-
+> - biopython
 
 ## Usage
 
@@ -30,7 +30,7 @@ Then run the main script `KmerAperture.py` referencing your fasta directory and 
 python KmerAperture.py --fastas <fasta dir> --reference <ref file fasta>
 ```
 
-You may also precluster your genomes if you suspect them of being relatively diverse (such as species-wide)
+You may also precluster your genomes (cf below) if you suspect them of being relatively diverse (such as species-wide)
 
 ## Input
 
@@ -56,7 +56,7 @@ Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Desc
 
 A .csv file with genomeID, estimated SNPs and estimated sequence presence in the reference (acc1) and query genome (acc2)
 
-Optionally output a SNP matrix of polymorphic sites estimated by KmerAperture
+Optionally output a SNP matrix of polymorphic sites estimated by KmerAperture using `-p True`
 
 ...more to come
 
@@ -77,13 +77,13 @@ Run:
 python sourmash_precluster.py --fastas <fasta dir> 
 ```
 
-The output is a heirarchical dendrogram (UPGMA) of your genomes MinHash (Jaccard) distances. Select a clustering threshold that cuts across long branches (major lineages). Then cluster based on this threshold with:
+The output is a hierarchical dendrogram (UPGMA) of your genomes MinHash (Jaccard) distances. Select a clustering threshold that cuts across long branches (major lineages). Then cluster based on this threshold with:
 
 ```shell
 python sourmash_precluster.py --fastas <fasta dir> --threshold <threshold>
 ```
 
-Obtain the threshold for clustering by viewing the dendrogram and selecting a distance that cuts horizontally through blue lines only. You may also assess the reference placement with preclustering and consider a more appropriate reference for genome clusters it's not included in
+Obtain the threshold for clustering by viewing the dendrogram and selecting a distance that cuts horizontally through blue lines only. You may also assess the reference placement with preclustering and consider a more appropriate reference for genome clusters if needed.
 
 
 <br />
