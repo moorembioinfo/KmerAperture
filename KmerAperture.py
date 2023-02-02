@@ -42,8 +42,9 @@ def add_args(a):
     parser.add_argument(
         "--pyonly",
         "-py",
-        help="Run KmerAperture in python only. Much slower than using the parser",
+        help="Run KmerAperture in python only. Slower than using the ocaml parser",
         default=False,
+        action='store_true',
     )
     args = parser.parse_args(a)
     return args
@@ -62,7 +63,7 @@ def get_accessory(kmer1ranges, ksize):
             allSNPranges.append(pair)
         if (rangediff>=(ksize*2)):
             acclength+=rangediff
-            acclength -=(ksize-1)
+            acclength +=(ksize)
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 

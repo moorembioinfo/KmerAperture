@@ -6,13 +6,23 @@ import os
 import pandas as pd
 
 def canon(naivekmers):
+    '''
+    Take the first base of the kmer and determine
+    the canonical kmer based on a higher or lower
+    value than its complement
+    '''
+    rcdict = {'A': 1, 'C':1, 'T':2, 'G':2}
     allkmers=[]
+    count =0
+    countrc = 0
     for kmer in naivekmers:
-        canonical_kmer=kmer
-        rckmer = str(reverse_complement(kmer))
-        if kmer> rckmer:
-            canonical_kmer=rckmer
-        allkmers.append(canonical_kmer)
+        base = kmer[0]
+        val = rcdict.get(base)
+        if val == 1:
+            allkmers.append(kmer)
+        elif val == 2:
+            rckmer = str(reverse_complement(kmer))
+            allkmers.append(rckmer)
     return allkmers
 
 def build_kmers(sequence, ksize):
@@ -45,17 +55,3 @@ def get_ranges(lst):
 def get_indices(kmeruniq, kmers):
     indexlist = [i for i, e in enumerate(kmers) if e in kmeruniq]
     return indexlist
-
-def precluster(filelist, cutoff):
-
-    print('Running sourmash sketch...\n')
-    scmd = 'sourmash sketch dna -p k=31'
-    os.system(scmd)
-    print('Running sourmash compare...\n')
-    ccmd = 'sourmash compare --csv precluster_sm.csv *sig'
-    os.system(ccmd)
-    os.remove('*sig')
-
-    df=pd.read_csv('precluster_sm.csv')
-    df.index = df.columns
-    
