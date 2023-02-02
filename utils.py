@@ -11,18 +11,35 @@ def canon(naivekmers):
     the canonical kmer based on a higher or lower
     value than its complement
     '''
-    rcdict = {'A': 1, 'C':1, 'T':2, 'G':2}
+    #complement = {'A': 'T', 'C':'G', 'T':'A', 'G':'C'}
+    rcdict = {'AA': 1, 'AC':1, 'AT':0, 'AG':1,
+    'TT': 2, 'TA':0, 'TC':2, 'TG':2,
+    'CA': 1, 'CC':1, 'CG':0, 'CT':2,
+    'GC':0, 'GA':1, 'GT':2, 'GG':2}
     allkmers=[]
     count =0
-    countrc = 0
+    countrc =0
     for kmer in naivekmers:
-        base = kmer[0]
-        val = rcdict.get(base)
-        if val == 1:
-            allkmers.append(kmer)
-        elif val == 2:
-            rckmer = str(reverse_complement(kmer))
-            allkmers.append(rckmer)
+        if not 'N' in kmer:
+            for pos in kmer:
+                firstpos=0
+                lastpos = -1
+                base = kmer[0] + kmer[-1]
+                #if 'N' in base:
+                #    continue
+                val = rcdict.get(base)
+                if val>0:
+                    if val == 1:
+                        allkmers.append(kmer)
+                        count+=1
+                    elif val == 2:
+                        rckmer = str(reverse_complement(kmer))
+                        allkmers.append(rckmer)
+                        countrc+=1
+                    break
+                else:
+                    firstpos+=1
+                    lastpos-=1
     return allkmers
 
 def build_kmers(sequence, ksize):
