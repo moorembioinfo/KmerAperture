@@ -15,42 +15,47 @@ KmerAperture.py is written in python3 and requires the following python packages
 > - pandas 
 > - biopython
 
-## Usage
+## Setup
 
 First set up a conda environment with the appropriate dependencies:
 
-```console
+```shell
 conda env create -f environment.yml
 conda activate env-KmerAperture
 ```
 
-Then run the main script `KmerAperture.py` referencing your fasta directory and reference genome:
+Compile the kmer parser. This is reccomended for speed
+```shell
+ocamlopt.opt -O3 -o KmerApertureParser KmerApertureParser.ml -ccopt -static
+```
+Alternatively KmerAperture can be run with ```--pyonly``` and will take longer to read the genomes
+
+## Usage
+
+Run the main script `KmerAperture.py` referencing your fasta directory and reference genome (required):
 
 ```shell
 python KmerAperture.py --fastas <fasta dir> --reference <ref file fasta>
 ```
 
-You may also precluster your genomes (cf below) if you suspect them of being relatively diverse (such as species-wide)
-
-## Input
-
-A reference genome and a directory of assembled query genomes (fasta format)
-
-<br />
-<br />
-
-
-## Options
+The following options are also available:
 
 Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Description | Required | Default val
 --------------|------------|-------------|----------|--------------
 `--fastas` |  `-f` |  Provide path to query fastas directory | ✅
 `--reference` |     `-r` |  Path and file name of fasta reference genome | ✅ | 
 `--kmersize` |      `-k` |  k size |                             | 21
-`--polySNP` |     `-p` |  Optionally output a matrix of estimated polymorphic SNPs sites |   | False
+`--pyonly` |     `-p` |  Run without fast ocaml kmer parser |   | False
 
-<br />
-<br />
+
+
+You may also precluster your genomes (cf below) if you suspect them of being relatively diverse (such as species-wide)
+
+
+## Input
+
+A reference genome and a directory of assembled query genomes (fasta format)
+
 
 ## Output
 
