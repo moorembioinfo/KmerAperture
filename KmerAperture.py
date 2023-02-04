@@ -277,11 +277,9 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
-        print(kmer2indices)
         kmer2ranges = get_ranges(kmer2indices)
         kmer2ranges_=list(kmer2ranges)
         SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges_, ksize)
-        print(SNPranges2)
         klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
@@ -301,7 +299,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         newdense = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
 
-        get_indels(kmer2ranges_, ksize, kmers2, kmers1)
+        #get_indels(kmer2ranges_, ksize, kmers2, kmers1)
 
 
         SNPs = matchedSNPs+newdense
