@@ -160,6 +160,28 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
 
     return(SNPs)
 
+def get_indels(kmer2ranges, k, kmers2, kmers1):
+    '''
+    Match kmers flanking series in alternate genome(s)
+    if they're contiguous in alternate
+    '''
+    for pair2 in kmer2ranges:
+        rangediff2 = pair2[1] - pair2[0]
+        if (rangediff2 >= (k+2)) and (rangediff2 <= (k+50)):
+            kmer1 = kmers2[pair2[0]-1]
+            kmer2 = kmers2[pair2[1]+1]
+
+            print(rangediff2)
+            print([kmer1, kmer2])
+
+            refpos = get_indices([kmer1, kmer2], kmers1)
+            print(refpos)
+            if (refpos[-1] - refpos[0]) == 4:
+                print(f'Indel of size {rangediff} (-k+1)')
+
+
+
+
 
 def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     '''
@@ -251,12 +273,15 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
                 kmers2_.append(kmer)
         kmer2set=set(kmers2_)
 
+
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
+        print(kmer2indices)
         kmer2ranges = get_ranges(kmer2indices)
         kmer2ranges_=list(kmer2ranges)
         SNPranges2, accranges2, acclength2 = get_accessory(kmer2ranges_, ksize)
+        print(SNPranges2)
         klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
@@ -275,6 +300,9 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         querynamedict[genome2] = querydict
 
         newdense = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
+
+        get_indels(kmer2ranges_, ksize, kmers2, kmers1)
+
 
         SNPs = matchedSNPs+newdense
 
