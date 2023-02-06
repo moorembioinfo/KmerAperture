@@ -24,9 +24,10 @@ conda env create -f environment.yml
 conda activate env-KmerAperture
 ```
 
-Compile the kmer parser. This is reccomended for speed
+Compile the kmer parser. This is recommended for speed
 ```shell
-ocamlopt.opt -O3 -o KmerApertureParser KmerApertureParser.ml -ccopt -static
+conda install ocaml -c conda-forge
+ocamlopt.opt -O3 -o parser/KmerApertureParser parser/KmerApertureParser.ml -ccopt -static
 ```
 Alternatively KmerAperture can be run with ```--pyonly``` and will take longer to read the genomes
 
