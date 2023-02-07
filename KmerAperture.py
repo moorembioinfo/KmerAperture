@@ -138,25 +138,25 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                 if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
                     pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
                     #print(len(pmindex))
-                    cutoff = round(Lseqlen*0.15)
+                    #cutoff = round(Lseqlen*0.25)
                     #print(f'{L}, {Lseqlen}, {cutoff}')
-                    if len(pmindex) < cutoff:
-                        outr = list(get_ranges(pmindex))
+                    #if len(pmindex) < cutoff:
+                    outr = list(get_ranges(pmindex))
 
-                        noindel =True
-                        indellen=0
-                        for r in outr:
-                            if r[1]-r[0] >1:
-                                #print('Indel!')
-                                noindel=False
-                                indellen+=(r[1]-r[0])
-                        if noindel:
-                            SNPs+=len(pmindex)
-                            break
-                        else:
-                            if len(pmindex) > indellen:
-                                SNPs+=(len(pmindex)-indellen)
-                            break
+                    noindel =True
+                    indellen=0
+                    for r in outr:
+                        if r[1]-r[0] >1:
+                            #print('Indel!')
+                            noindel=False
+                            indellen+=(r[1]-r[0])
+                    if noindel:
+                        SNPs+=len(pmindex)
+                        break
+                    else:
+                        if len(pmindex) > indellen:
+                            SNPs+=(len(pmindex)-indellen)
+                        break
 
     return(SNPs)
 
@@ -165,19 +165,24 @@ def get_indels(kmer2ranges, k, kmers2, kmers1):
     Match kmers flanking series in alternate genome(s)
     if they're contiguous in alternate
     '''
+
+    totalins = 0
     for pair2 in kmer2ranges:
         rangediff2 = pair2[1] - pair2[0]
-        if (rangediff2 >= (k+2)) and (rangediff2 <= (k+50)):
+        if (rangediff2 >= (k+2)) and (rangediff2 <= (k+49)):
             kmer1 = kmers2[pair2[0]-1]
-            kmer2 = kmers2[pair2[1]+1]
+            kmer2 = kmers2[pair2[1]]
 
             print(rangediff2)
             print([kmer1, kmer2])
 
             refpos = get_indices([kmer1, kmer2], kmers1)
             print(refpos)
-            if (refpos[-1] - refpos[0]) == 4:
-                print(f'Indel of size {rangediff} (-k+1)')
+            if (refpos[0] + k +1) == (refpos[1]):
+                indelsize = rangediff2-(k-1)
+                print(f'Indel size: {indelsize}')
+                totalins+=indelsize
+    return totalins
 
 
 
