@@ -40,6 +40,14 @@ def add_args(a):
         required=False,
     )
     parser.add_argument(
+        "--sensitive",
+        "-s",
+        help="Run KmerAperture in sensitive mode. Allows for detection of large dense SNP chains, but increases runtime",
+        default=10,
+        type=int,
+        required=False,
+    )
+    parser.add_argument(
         "--pyonly",
         "-py",
         help="Run KmerAperture in python only. Slower than using the ocaml parser",
@@ -89,12 +97,16 @@ def assert_kmer(kmerranges, k, kmers2):
         positiondict[mkmer1] = (startpos+k) #-1
     return(klist, positiondict)
 
-def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename):
+def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename, sensitive):
 
     '''
     Find contiguous kmer series from size k+2 to n(k-1)+1
     Extract full sequence and pattern match SNPs for count and extract
     '''
+
+    rdict ={}
+    qdict ={}
+
     SNPs = 0
     Ns = 0
 
@@ -105,7 +117,8 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     for record in screed.open(qfilename):
         qsequence += record.sequence
 
-    upperboundSNP = 10
+
+    upperboundSNP = sensitive
     ks = k+2
     ke = (upperboundSNP *(k-1)) + 1
     for L in range(ks, ke):
@@ -134,31 +147,41 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
         if aseqs and bseqs:
             pairs_seqs = list(itertools.product(aseqs, bseqs))
             for pairseq in pairs_seqs:
-                #print(pairseq)
                 if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
                     pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
-                    #print(len(pmindex))
-                    #cutoff = round(Lseqlen*0.25)
-                    #print(f'{L}, {Lseqlen}, {cutoff}')
-                    #if len(pmindex) < cutoff:
                     outr = list(get_ranges(pmindex))
 
                     noindel =True
                     indellen=0
                     for r in outr:
                         if r[1]-r[0] >1:
-                            #print('Indel!')
                             noindel=False
-                            indellen+=(r[1]-r[0])
+                            #indellen+=(r[1]-r[0])
                     if noindel:
                         SNPs+=len(pmindex)
+                        ri = sequence.index(pairseq[0]) +k
+                        qi = qsequence.index(pairseq[1]) +k
+                        snpdiffs = list(np.diff(pmindex))
+                        rb = sequence[ri-1]
+                        qb = qsequence[qi-1]
+                        rdict[ri] = rb
+                        qdict[ri] = qb
+                        for x in snpdiffs:
+                            rb=''
+                            qb=''
+                            ri+=x
+                            qi+=x
+                            rb = sequence[ri-1]
+                            qb = qsequence[qi-1]
+                            rdict[ri] = rb
+                            qdict[ri] = qb
                         break
                     else:
                         if len(pmindex) > indellen:
                             SNPs+=(len(pmindex)-indellen)
                         break
 
-    return(SNPs)
+    return(SNPs, rdict, qdict)
 
 def get_indels(kmer2ranges, k, kmers2, kmers1):
     '''
@@ -185,14 +208,11 @@ def get_indels(kmer2ranges, k, kmers2, kmers1):
     return totalins
 
 
-
-
-
 def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     '''
     Find and extract SNPs estimated by KmerAperture
     '''
-    refdict = {}
+
     querydict = {}
     sequence=''
     for record in screed.open(reference):
@@ -217,31 +237,27 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
             SNP=rcseq[4]
         refbase = refseq[4]
 
-        if not refpos in refdict.keys():
-            refdict[refpos] = refbase
+        #if not refpos in refdict.keys():
+        refdict[refpos] = refbase
         querydict[refpos] = SNP
 
     return(querydict, refdict)
 
-def outputs(refdict, querynamedict):
+def outputs(refdict, querynamedict, rdict, qdict):
     '''
     Generate kmeraperture outputs
     '''
     print('Generating SNP output...\n')
     df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
     df.columns = ['refpos','refbase']
-    for key in querynamedict:
-        querydict_=querynamedict.get(key)
-        df[key] = df['refpos'].map(querydict_)
-        df.loc[df[key].isna(),key] = df['refbase']
-    df.to_csv('SNPmatrix.polymorphic.csv')
-
-
+    querynamedict['reference'] = refdict
+    dft = pd.DataFrame.from_dict(querynamedict, orient='columns')
+    dft = dft.mask(dft.isna(), dft['reference'], axis=0)
+    dft.to_csv('SNPmatrix.polymorphic.csv')
     print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
 
-
-def run_KmerAperture(gList, reference, ksize, pyonly):
+def run_KmerAperture(gList, reference, ksize, pyonly, sensitive):
 
     print(f'Reading in reference genome {reference}')
     if pyonly:
@@ -272,6 +288,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         else:
             proc = subprocess.Popen([ocamlparser, genome2, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
             kmers2 = proc.stdout.read().split()
+        print(f'Processing {genome2} k-mers')
         kmers2_=[]
         for kmer in kmers2:
             if not 'N' in kmer:
@@ -300,10 +317,11 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
+        newdense, rdict, qdict = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2, sensitive)
+
+        refdict.update(rdict)
+        querydict.update(qdict)
         querynamedict[genome2] = querydict
-
-        newdense = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
-
         #get_indels(kmer2ranges_, ksize, kmers2, kmers1)
 
 
@@ -316,7 +334,9 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
     outputs(
     refdict,
-    querynamedict
+    querynamedict,
+    rdict,
+    qdict
     )
 
 if __name__=='__main__':
@@ -326,6 +346,7 @@ if __name__=='__main__':
     genomedir = args.fastas
     kmersize = args.kmersize
     pyonly = args.pyonly
+    sensitive = args.sensitive
 
     if (kmersize % 2) != 1:
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
@@ -342,4 +363,5 @@ if __name__=='__main__':
         gList,
         reference,
         kmersize,
-        pyonly)
+        pyonly,
+        sensitive)
