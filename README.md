@@ -63,7 +63,7 @@ A reference genome and a directory of assembled query genomes (fasta format)
 
 A .csv file with genomeID, estimated SNPs and estimated sequence presence in the reference (acc1) and query genome (acc2)
 
-Optionally output a SNP matrix of polymorphic sites estimated by KmerAperture using `-p True`
+A SNP matrix of all polymorphic sites
 
 ...more to come
 
