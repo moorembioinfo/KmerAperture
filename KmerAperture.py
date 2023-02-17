@@ -40,14 +40,6 @@ def add_args(a):
         required=False,
     )
     parser.add_argument(
-        "--sensitive",
-        "-s",
-        help="Run KmerAperture in sensitive mode. Allows for detection of large dense SNP chains, but increases runtime",
-        default=10,
-        type=int,
-        required=False,
-    )
-    parser.add_argument(
         "--pyonly",
         "-py",
         help="Run KmerAperture in python only. Slower than using the ocaml parser",
@@ -97,7 +89,7 @@ def assert_kmer(kmerranges, k, kmers2):
         positiondict[mkmer1] = (startpos+k) #-1
     return(klist, positiondict)
 
-def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename, sensitive):
+def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename):
 
     '''
     Find contiguous kmer series from size k+2 to n(k-1)+1
@@ -118,7 +110,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
         qsequence += record.sequence
 
 
-    upperboundSNP = sensitive
+    upperboundSNP = 100
     ks = k+2
     ke = (upperboundSNP *(k-1)) + 1
     for L in range(ks, ke):
@@ -156,7 +148,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                     for r in outr:
                         if r[1]-r[0] >1:
                             noindel=False
-                            #indellen+=(r[1]-r[0])
                     if noindel:
                         SNPs+=len(pmindex)
                         ri = sequence.index(pairseq[0]) +k
@@ -176,10 +167,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                             rdict[ri] = rb
                             qdict[ri] = qb
                         break
-                    #else:
-                    #    if len(pmindex) > indellen:
-                    #        SNPs+=(len(pmindex)-indellen)
-                    #    break
 
     return(SNPs, rdict, qdict)
 
@@ -237,7 +224,6 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
             SNP=rcseq[4]
         refbase = refseq[4]
 
-        #if not refpos in refdict.keys():
         refdict[refpos] = refbase
         querydict[refpos] = SNP
 
@@ -252,12 +238,12 @@ def outputs(refdict, querynamedict, rdict, qdict):
     df.columns = ['refpos','refbase']
     querynamedict['reference'] = refdict
     dft = pd.DataFrame.from_dict(querynamedict, orient='columns')
-    dft = dft.mask(dft.isna(), dft['reference'], axis=0)
+    dft = dft.mask(dft.isnull() | (dft == '') | (dft.isna()), dft['reference'], axis=0)
     dft.to_csv('SNPmatrix.polymorphic.csv')
     print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
 
-def run_KmerAperture(gList, reference, ksize, pyonly, sensitive):
+def run_KmerAperture(gList, reference, ksize, pyonly):
 
     print(f'Reading in reference genome {reference}')
     if pyonly:
@@ -317,7 +303,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, sensitive):
 
         querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
-        newdense, rdict, qdict = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2, sensitive)
+        newdense, rdict, qdict = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
 
         refdict.update(rdict)
         querydict.update(qdict)
@@ -346,7 +332,6 @@ if __name__=='__main__':
     genomedir = args.fastas
     kmersize = args.kmersize
     pyonly = args.pyonly
-    sensitive = args.sensitive
 
     if (kmersize % 2) != 1:
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
@@ -363,5 +348,4 @@ if __name__=='__main__':
         gList,
         reference,
         kmersize,
-        pyonly,
-        sensitive)
+        pyonly)
