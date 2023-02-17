@@ -46,7 +46,6 @@ Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Desc
 `--fastas` |  `-f` |  Provide path to query fastas directory | ✅
 `--reference` |     `-r` |  Path and file name of fasta reference genome | ✅ | 
 `--kmersize` |      `-k` |  k size |                             | 21
-`--sensitive` |     `-s` |  Maximum SNPs within k of one another to search for |   | 10
 `--pyonly` |     `-py` |  Run without fast ocaml kmer parser |   | False
 
 
