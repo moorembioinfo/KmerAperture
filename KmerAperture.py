@@ -16,7 +16,6 @@ import subprocess
 dir_path = str(os.path.dirname(os.path.realpath(__file__)))
 
 
-
 def add_args(a):
     parser = argparse.ArgumentParser(description="KmerAperture")
     parser.add_argument(
@@ -61,7 +60,7 @@ def get_accessory(kmer1ranges, ksize):
         rangediff = pair[1] - pair[0]
         if rangediff == ksize:
             allSNPranges.append(pair)
-        if (rangediff>=(ksize*2)):
+        if (rangediff>(ksize)):
             acclength+=rangediff
             acclength +=(ksize)
             accranges.append(pair)
@@ -100,7 +99,9 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     qdict ={}
 
     SNPs = 0
-    Ns = 0
+    denseSNP_L = 0
+
+    denseranges = []
 
     sequence=''
     for record in screed.open(reference):
@@ -108,7 +109,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     qsequence =''
     for record in screed.open(qfilename):
         qsequence += record.sequence
-
 
     upperboundSNP = 100
     ks = k+2
@@ -166,9 +166,12 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                             qb = qsequence[qi-1]
                             rdict[ri] = rb
                             qdict[ri] = qb
+
+                        denseSNP_L += (Lseqlen+1)
+
                         break
 
-    return(SNPs, rdict, qdict)
+    return(SNPs, rdict, qdict, denseSNP_L)
 
 def get_indels(kmer2ranges, k, kmers2, kmers1):
     '''
@@ -177,22 +180,19 @@ def get_indels(kmer2ranges, k, kmers2, kmers1):
     '''
 
     totalins = 0
+    insdict = {}
+
     for pair2 in kmer2ranges:
         rangediff2 = pair2[1] - pair2[0]
+        print(rangediff2)
         if (rangediff2 >= (k+2)) and (rangediff2 <= (k+49)):
             kmer1 = kmers2[pair2[0]-1]
             kmer2 = kmers2[pair2[1]]
-
-            print(rangediff2)
-            print([kmer1, kmer2])
-
             refpos = get_indices([kmer1, kmer2], kmers1)
-            print(refpos)
             if (refpos[0] + k +1) == (refpos[1]):
                 indelsize = rangediff2-(k-1)
-                print(f'Indel size: {indelsize}')
-                totalins+=indelsize
-    return totalins
+                totalins+=1
+    return totalins, insL, insdict
 
 
 def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
@@ -233,13 +233,15 @@ def outputs(refdict, querynamedict, rdict, qdict):
     '''
     Generate kmeraperture outputs
     '''
-    print('Generating SNP output...\n')
+    print('\n\nGenerating SNP output...\n')
     df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
     df.columns = ['refpos','refbase']
     querynamedict['reference'] = refdict
     dft = pd.DataFrame.from_dict(querynamedict, orient='columns')
     dft = dft.mask(dft.isnull() | (dft == '') | (dft.isna()), dft['reference'], axis=0)
     dft.to_csv('SNPmatrix.polymorphic.csv')
+
+
     print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
 
@@ -262,7 +264,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
     outname = f'./{reference}_{ksize}.csv'
     output=open(outname, "w")
-    output.write('gID,SNP,acc1,acc2\n')
+    output.write('gID,SNP,indels,acc1,acc2\n')
     querynamedict = {}
     refdict = {}
 
@@ -303,20 +305,23 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
-        newdense, rdict, qdict = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
+        newdense, rdict, qdict, denseSNP_L = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
 
         refdict.update(rdict)
         querydict.update(qdict)
         querynamedict[genome2] = querydict
-        #get_indels(kmer2ranges_, ksize, kmers2, kmers1)
 
+        #numinsertions, insertionsdict = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
 
+        #Adjust accessory to not include dense SNPs and indels
+        acclength1-=denseSNP_L
+        acclength2-=denseSNP_L
+
+        #Total SNPs
         SNPs = matchedSNPs+newdense
-
         result =f"{genome2},{SNPs},{acclength1},{acclength2}\n"
+        #result =f"{genome2},{SNPs},{numinsertions},{acclength1},{acclength2}\n"
         output.write(result)
-
-    #df = pd.DataFrame.from_dict(refdict)
 
     outputs(
     refdict,
