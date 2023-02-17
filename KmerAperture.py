@@ -176,10 +176,10 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                             rdict[ri] = rb
                             qdict[ri] = qb
                         break
-                    else:
-                        if len(pmindex) > indellen:
-                            SNPs+=(len(pmindex)-indellen)
-                        break
+                    #else:
+                    #    if len(pmindex) > indellen:
+                    #        SNPs+=(len(pmindex)-indellen)
+                    #    break
 
     return(SNPs, rdict, qdict)
 
