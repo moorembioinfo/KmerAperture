@@ -61,8 +61,7 @@ def get_accessory(kmer1ranges, ksize):
         if rangediff == ksize:
             allSNPranges.append(pair)
         if (rangediff>(ksize)):
-            acclength+=rangediff
-            acclength +=(ksize)
+            acclength+=((rangediff-ksize)+1)
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
@@ -76,7 +75,12 @@ def filter_accessory_positions(accranges, indelranges, denseranges):
     for ranges in accranges:
         if ranges not in indelranges:
             acconly.append(ranges)
-    return(acconly)
+
+    acclength =0
+    for ranges in acconly:
+        rangediff = ranges[1]-ranges[0]
+        acclength+=((rangediff-ksize)+1)
+    return(acconly, acclength)
 
 #def get_core(refaccranges):
     #test
@@ -119,6 +123,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     denseSNP_L = 0
 
     denseranges = []
+    denseranges_ref = []
 
     sequence=''
     for record in screed.open(reference):
@@ -172,6 +177,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
 
                         #Append series to remove from accessory
                         denseranges.append((qi-k, qi+k+1))
+                        denseranges_ref.append((ri-k, ri+k+1))
 
                         snpdiffs = list(np.diff(pmindex))
                         rb = sequence[ri-1]
@@ -192,7 +198,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
 
                         break
 
-    return(SNPs, rdict, qdict, denseSNP_L, denseranges)
+    return(SNPs, rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
 
 def get_indels(kmer2ranges, k, kmers2, kmers1):
     '''
@@ -212,7 +218,7 @@ def get_indels(kmer2ranges, k, kmers2, kmers1):
             kmer2 = kmers2[pair2[1]]
             refpos = get_indices([kmer1, kmer2], kmers1)
             if (refpos[0] + k +1) == (refpos[1]):
-                indelsize = rangediff2-(k-1)
+                indelsize = (rangediff2-k)+1
                 totalinsbp += indelsize
                 totalins+=1
                 insranges.append(pair2)
@@ -329,7 +335,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         querydict, refdict = get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
-        newdense, rdict, qdict, denseSNP_L, denseranges = find_dense_SNP2(kmer2ranges_, kmer1ranges_, ksize, kmers2, kmers1, reference, genome2)
+        newdense,rdict,qdict,denseSNP_L,denseranges,denseranges_ref = find_dense_SNP2(kmer2ranges_,kmer1ranges_,ksize,kmers2,kmers1,reference,genome2)
 
         refdict.update(rdict)
         querydict.update(qdict)
@@ -338,15 +344,15 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         numinsertions, insertionsdict, insranges, totalinsbp = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
 
         #Adjust accessory to not include dense SNPs and indels
-        acclength1-=denseSNP_L
-        acclength2-=denseSNP_L
-        acclength2-=totalinsbp
+        acclength1_=0
+        acclength2_=0
+        acc2only, acclength2_ = filter_accessory_positions(accranges2, insranges, denseranges)
+        acc1only, acclength1_ = filter_accessory_positions(accranges1, insranges, denseranges_ref)
 
-        filter_accessory_positions(accranges2, insranges, denseranges)
 
         #Total SNPs
         SNPs = matchedSNPs+newdense
-        result =f"{genome2},{SNPs},{numinsertions},{acclength1},{acclength2}\n"
+        result =f"{genome2},{SNPs},{numinsertions},{acclength1_},{acclength2_}\n"
         output.write(result)
 
     outputs(
