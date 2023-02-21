@@ -13,6 +13,7 @@ from utils import get_uniques, get_ranges, get_indices
 from Bio.Seq import reverse_complement
 import os
 import subprocess
+import json
 dir_path = str(os.path.dirname(os.path.realpath(__file__)))
 
 
@@ -65,7 +66,7 @@ def get_accessory(kmer1ranges, ksize):
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
-def filter_accessory_positions(accranges, indelranges, denseranges):
+def filter_accessory_positions(accranges, indelranges, denseranges, ksize):
     '''
     For all k-mer series >k assume they're query-accessory
     Filter out those that instead represent dense SNPs or indels
@@ -82,9 +83,29 @@ def filter_accessory_positions(accranges, indelranges, denseranges):
         acclength+=((rangediff-ksize)+1)
     return(acconly, acclength)
 
-#def get_core(refaccranges):
-    #test
+def get_core(refacclists):
+    '''
+    Take the positions that are accessory to the reference
+    (absent in a query genome)
+    Find if they're absent in >5% of query genomes
+    '''
+    positions = set()
+    for r in refacclists:
+        for start, end in r:
+            positions.update(range(start, end+1))
+    positions = np.array(sorted(positions))
+    max_len = max(len(r) for r in refacclists)
+    matrix = np.zeros((len(refacclists), len(positions)))
+    for i, r in enumerate(refacclists):
+        for j, p in enumerate(positions):
+            if any(start <= p <= end for start, end in r):
+                matrix[i, j] = 1
+    freq = matrix.sum(axis=0) / len(refacclists)
 
+    notcoresites = []
+    for p in positions[freq > 0.05]:
+        notcoresites.append(p)
+    return(notcoresites)
 
 
 def assert_kmer(kmerranges, k, kmers2):
@@ -259,18 +280,40 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
 
     return(querydict, refdict)
 
-def outputs(refdict, querynamedict, rdict, qdict):
+def outputs(refdict, querynamedict, rdict, qdict, queryaccdict, notcoresites, positions_dict):
     '''
     Generate kmeraperture outputs
     '''
-    print('\n\nGenerating SNP output...\n')
+    print('\n\nGenerating output...\n')
+    #Output matrix of SNP sites and refpos
     df = pd.DataFrame(list(refdict.items()), columns = ['refpos','refbase'])
     df.columns = ['refpos','refbase']
     querynamedict['reference'] = refdict
     dft = pd.DataFrame.from_dict(querynamedict, orient='columns')
     dft = dft.mask(dft.isnull() | (dft == '') | (dft.isna()), dft['reference'], axis=0)
+    dft.sort_index(inplace=True)
     dft.to_csv('SNPmatrix.polymorphic.csv')
 
+    #Output SNP sites
+    concatenated = dft.apply(lambda x: ''.join(x.astype(str)))
+    with open('polymorphicsites.fasta', 'w') as f:
+        for col_name, sequence in concatenated.items():
+            f.write(f'>{col_name.split("./")[-1]}\n{sequence}\n')
+
+    #Output core genome
+    querynamedict['reference'] = positions_dict
+    df_core = pd.DataFrame.from_dict(querynamedict, orient='columns')
+    df_core = df_core.mask(df_core.isnull() | (df_core == '') | (df_core.isna()), df_core['reference'], axis=0)
+    df_core.drop(index=notcoresites, inplace=True)
+    df_core.sort_index(inplace=True)
+    concatenatedcore = df_core.apply(lambda x: ''.join(x.astype(str)))
+    with open('core_alignment.fasta', 'w') as f:
+        for col_name, sequence in concatenatedcore.items():
+            f.write(f'>{col_name.split("./")[-1]}\n{sequence}\n')
+
+    #Output Accessory coordinates
+    with open('accessory_coords.json', 'w') as f:
+        json.dump(queryaccdict, f)
 
     print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
@@ -281,7 +324,6 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
     if pyonly:
         kmers1 = read_kmers_from_file(reference, ksize)
     else:
-
         ocamlparser = dir_path+'/parser/KmerApertureParser'
         proc = subprocess.Popen([ocamlparser, reference, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
         kmers1 = proc.stdout.read().split()
@@ -297,6 +339,10 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
     output.write('gID,SNP,indels,acc1,acc2\n')
     querynamedict = {}
     refdict = {}
+
+    refacclists = []
+
+    queryaccdict = {}
 
     for genome2 in gList:
         #Generate canonical kmers for query genome
@@ -346,20 +392,31 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         #Adjust accessory to not include dense SNPs and indels
         acclength1_=0
         acclength2_=0
-        acc2only, acclength2_ = filter_accessory_positions(accranges2, insranges, denseranges)
-        acc1only, acclength1_ = filter_accessory_positions(accranges1, insranges, denseranges_ref)
+        acc2only, acclength2_ = filter_accessory_positions(accranges2, insranges, denseranges, ksize)
+        acc1only, acclength1_ = filter_accessory_positions(accranges1, insranges, denseranges_ref, ksize)
 
+        queryaccdict[genome2] = acc2only
+        refacclists.append(acc1only)
 
         #Total SNPs
         SNPs = matchedSNPs+newdense
         result =f"{genome2},{SNPs},{numinsertions},{acclength1_},{acclength2_}\n"
         output.write(result)
 
+    refsequencefull=''
+    for record in screed.open(reference):
+        refsequencefull += record.sequence
+    positions_dict = {i: char for i, char in enumerate(refsequencefull)}
+    notcoresites = get_core(refacclists)
+
     outputs(
     refdict,
     querynamedict,
     rdict,
-    qdict
+    qdict,
+    queryaccdict,
+    notcoresites,
+    positions_dict
     )
 
 if __name__=='__main__':
