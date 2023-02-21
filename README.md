@@ -33,10 +33,10 @@ Alternatively KmerAperture can be run with ```--pyonly``` and will take longer t
 
 ## Usage
 
-Run the main script `KmerAperture.py` referencing your fasta directory and reference genome (required):
+Run the main script `KmerAperture` referencing your fasta directory and reference genome (required):
 
 ```shell
-python KmerAperture.py --fastas <fasta dir> --reference <ref file fasta>
+KmerAperture --fastas <fasta dir> --reference <ref file fasta>
 ```
 
 The following options are also available:
