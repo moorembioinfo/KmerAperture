@@ -74,7 +74,7 @@ To use the core genome SNPs for a phylogeny with branch lengths corrected for re
 conda install -c conda-forge -c bioconda -c defaults clonalframeml
 conda install -c bioconda iqtree
 iqtree -s core_alignment.fasta
-ClonallFrameML core_alignment.fasta.treefile core_alignment.fasta kmeraperture
+ClonalFrameML core_alignment.fasta.treefile core_alignment.fasta kmeraperture
 ```
 
 <br />
