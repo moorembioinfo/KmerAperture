@@ -61,11 +61,11 @@ A reference genome and a directory of assembled query genomes (fasta format)
 ## Output
 
 Filename | Description | 
---------------|------------|
-`SNPmatrix.polymorphic.csv` |  `Matrix of polymorphic sites for all genomes against the reference` |
-`polymorphicsites.fasta` |     `Multifasta file of polymorphic sites compared with the reference`  |
-`core_alignment.fasta` |      `Core genome SNP alignment. For sequence present in ≥95% of genomes including the reference` |
-`accessory_coords.json` |     `Coordinates of sequence accessory to each query genome compared with the reference` |
+--------------|-------|
+`SNPmatrix.polymorphic.csv` |  Matrix of polymorphic sites for all genomes against the reference |
+`polymorphicsites.fasta` |     Multifasta file of polymorphic sites compared with the reference  |
+`core_alignment.fasta` |      Core genome SNP alignment. For sequence present in ≥95% of genomes including the reference |
+`accessory_coords.json` |     Coordinates of sequence accessory to each query genome compared with the reference |
 
 
 
@@ -76,7 +76,7 @@ Filename | Description |
 
 Install sourmash (https://github.com/sourmash-bio/sourmash):
 
-```console
+```shell
 conda install -c conda-forge -c bioconda sourmash
 ```
 
