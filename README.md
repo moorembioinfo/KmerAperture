@@ -66,6 +66,7 @@ Filename | Description |
 `polymorphicsites.fasta` |     Multifasta file of polymorphic sites compared with the reference  |
 `core_alignment.fasta` |      Core genome SNP alignment. For sequence present in ≥95% of genomes including the reference |
 `accessory_coords.json` |     Coordinates of sequence accessory to each query genome compared with the reference |
+`{referencename}_{k}.csv` | Comma separated results for each genomes SNP and indel count compared with reference and accessory size |
 
 
 
