@@ -68,7 +68,14 @@ Filename | Description |
 `accessory_coords.json` |     Coordinates of sequence accessory to each query genome compared with the reference |
 `{referencename}_{k}.csv` | Comma separated results for each genomes SNP and indel count compared with reference and accessory size |
 
+To use the core genome SNPs for a phylogeny with branch lengths corrected for recombination use [iqtree](https://github.com/Cibiv/IQ-TREE) and [ClonalFrameML](https://github.com/xavierdidelot/ClonalFrameML):
 
+```shell
+conda install -c conda-forge -c bioconda -c defaults clonalframeml
+conda install -c bioconda iqtree
+iqtree -s core_alignment.fasta
+ClonallFrameML core_alignment.fasta.treefile core_alignment.fasta kmeraperture
+```
 
 <br />
 <br />
