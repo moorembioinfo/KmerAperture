@@ -60,11 +60,14 @@ A reference genome and a directory of assembled query genomes (fasta format)
 
 ## Output
 
-A .csv file with genomeID, estimated SNPs and estimated sequence presence in the reference (acc1) and query genome (acc2)
+Filename | Description | 
+--------------|------------|
+`SNPmatrix.polymorphic.csv` |  `Matrix of polymorphic sites for all genomes against the reference` |
+`polymorphicsites.fasta` |     `Multifasta file of polymorphic sites compared with the reference`  |
+`core_alignment.fasta` |      `Core genome SNP alignment. For sequence present in ≥95% of genomes including the reference` |
+`accessory_coords.json` |     `Coordinates of sequence accessory to each query genome compared with the reference` |
 
-A SNP matrix of all polymorphic sites
 
-...more to come
 
 <br />
 <br />
