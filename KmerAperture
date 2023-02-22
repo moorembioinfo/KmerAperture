@@ -235,14 +235,17 @@ def get_indels(kmer2ranges, k, kmers2, kmers1):
     for pair2 in kmer2ranges:
         rangediff2 = pair2[1] - pair2[0]
         if (rangediff2 >= (k+2)) and (rangediff2 <= (k+49)):
-            kmer1 = kmers2[pair2[0]-1]
-            kmer2 = kmers2[pair2[1]]
-            refpos = get_indices([kmer1, kmer2], kmers1)
-            if (refpos[0] + k +1) == (refpos[1]):
-                indelsize = (rangediff2-k)+1
-                totalinsbp += indelsize
-                totalins+=1
-                insranges.append(pair2)
+            try:
+                kmer1 = kmers2[pair2[0]-1]
+                kmer2 = kmers2[pair2[1]]
+                refpos = get_indices([kmer1, kmer2], kmers1)
+                if (refpos[0] + k +1) == (refpos[1]):
+                    indelsize = (rangediff2-k)+1
+                    totalinsbp += indelsize
+                    totalins+=1
+                    insranges.append(pair2)
+            except:
+                continue
     return totalins, insdict, insranges, totalinsbp
 
 
