@@ -182,42 +182,45 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
         if aseqs and bseqs:
             pairs_seqs = list(itertools.product(aseqs, bseqs))
             for pairseq in pairs_seqs:
-                if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
-                    pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
-                    outr = list(get_ranges(pmindex))
+                try:
+                    if (len(pairseq[0]) > 1) and (len(pairseq[1]) > 1): #This should always be the case and the condition not be needed
+                        pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
+                        outr = list(get_ranges(pmindex))
 
-                    noindel =True
-                    indellen=0
-                    for r in outr:
-                        if r[1]-r[0] >1:
-                            noindel=False
-                    if noindel:
-                        SNPs+=len(pmindex)
-                        ri = sequence.index(pairseq[0]) +k
-                        qi = qsequence.index(pairseq[1]) +k
+                        noindel =True
+                        indellen=0
+                        for r in outr:
+                            if r[1]-r[0] >1:
+                                noindel=False
+                        if noindel:
+                            SNPs+=len(pmindex)
+                            ri = sequence.index(pairseq[0]) +k
+                            qi = qsequence.index(pairseq[1]) +k
 
-                        #Append series to remove from accessory
-                        denseranges.append((qi-k, qi+k+1))
-                        denseranges_ref.append((ri-k, ri+k+1))
+                            #Append series to remove from accessory
+                            denseranges.append((qi-k, qi+k+1))
+                            denseranges_ref.append((ri-k, ri+k+1))
 
-                        snpdiffs = list(np.diff(pmindex))
-                        rb = sequence[ri-1]
-                        qb = qsequence[qi-1]
-                        rdict[ri] = rb
-                        qdict[ri] = qb
-                        for x in snpdiffs:
-                            rb=''
-                            qb=''
-                            ri+=x
-                            qi+=x
+                            snpdiffs = list(np.diff(pmindex))
                             rb = sequence[ri-1]
                             qb = qsequence[qi-1]
                             rdict[ri] = rb
                             qdict[ri] = qb
+                            for x in snpdiffs:
+                                rb=''
+                                qb=''
+                                ri+=x
+                                qi+=x
+                                rb = sequence[ri-1]
+                                qb = qsequence[qi-1]
+                                rdict[ri] = rb
+                                qdict[ri] = qb
 
-                        denseSNP_L += (Lseqlen+1)
+                            denseSNP_L += (Lseqlen+1)
 
-                        break
+                            break
+                except:
+                    pass
 
     return(SNPs, rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
 
