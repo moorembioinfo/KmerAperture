@@ -184,16 +184,18 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
             for pairseq in pairs_seqs:
                 if len(pairseq) > 1:
                     pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
-                    if (len(pmindex)/len(pairseq[0])) <0.11:
-                        outr = list(get_ranges(pmindex))
 
-                        noindel =True
-                        indellen=0
-                        for r in outr:
-                            if r[1]-r[0] >1:
-                                noindel=False
-                                indellen+=(r[1]-r[0])
-                        if noindel:
+                    outr = list(get_ranges(pmindex))
+
+                    noindel =True
+                    indellen=0
+                    for r in outr:
+                        if r[1]-r[0] >1:
+                            noindel=False
+                            indellen+=(r[1]-r[0])
+                    if noindel:
+                        if (len(pmindex)/len(pairseq[0])) <0.26:
+
                             SNPs+=len(pmindex)
                             try:
                                 ri = sequence.index(pairseq[0]) +k
@@ -223,9 +225,11 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                             denseSNP_L += (Lseqlen+1)
 
                             break
-                        else:
-                            if len(pmindex) > indellen:
-                                SNPs+=(len(pmindex)-indellen)
+                    else:
+                        if len(pmindex) > indellen:
+                            SNPsonly+=(len(pmindex)-indellen)
+                            if ((SNPsonly)/(len(pairseq[0])-indellen)) <0.26:
+                                SNPs+=(SNPsonly)
                                 denseSNP_L += (Lseqlen+1)
                                 break
 
