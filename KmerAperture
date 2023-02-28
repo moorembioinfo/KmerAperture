@@ -409,7 +409,6 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         SNPs = matchedSNPs+newdense
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         output.write(result)
-    exit()
     refsequencefull=''
     for record in screed.open(reference):
         refsequencefull += record.sequence
