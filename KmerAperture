@@ -227,7 +227,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
                             break
                     else:
                         if len(pmindex) > indellen:
-                            SNPsonly+=(len(pmindex)-indellen)
+                            SNPsonly=(len(pmindex)-indellen)
                             if ((SNPsonly)/(len(pairseq[0])-indellen)) <0.26:
                                 SNPs+=(SNPsonly)
                                 denseSNP_L += (Lseqlen+1)
