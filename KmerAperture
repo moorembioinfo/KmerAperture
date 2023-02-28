@@ -153,6 +153,7 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     for record in screed.open(qfilename):
         qsequence += record.sequence
 
+
     upperboundSNP = 100
     ks = k+2
     ke = (upperboundSNP *(k-1)) + 1
@@ -171,10 +172,14 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
         aseqs = []
         bseqs = []
         for pos in k1_L_ranges:
+            exseq=''
+            rcexseq=''
             exseq = sequence[pos:pos+Lseqlen]
             rcexseq = str(reverse_complement(exseq))
             aseqs.extend([exseq, rcexseq])
         for pos in k2_L_ranges:
+            exseq=''
+            rcexseq=''
             exseq = qsequence[pos:pos+Lseqlen]
             rcexseq = str(reverse_complement(exseq))
             bseqs.extend([exseq, rcexseq])
@@ -183,55 +188,38 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
             pairs_seqs = list(itertools.product(aseqs, bseqs))
             for pairseq in pairs_seqs:
                 if len(pairseq) > 1:
-                    pmindex = [index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]]
+                    pmindex = []
+                    pmindex = sorted([index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]])
 
-                    outr = list(get_ranges(pmindex))
+                    if (len(pmindex)/len(pairseq[0])) <0.16:
+                        SNPs+=len(pmindex)
+                        try:
+                            ri = sequence.index(pairseq[0]) +k
+                            qi = qsequence.index(pairseq[1]) +k
+                        except:
+                            continue
 
-                    noindel =True
-                    indellen=0
-                    for r in outr:
-                        if r[1]-r[0] >1:
-                            noindel=False
-                            indellen+=(r[1]-r[0])
-                    if noindel:
-                        if (len(pmindex)/len(pairseq[0])) <0.26:
+                        denseranges.append((qi-k, qi+k+1))
+                        denseranges_ref.append((ri-k, ri+k+1))
 
-                            SNPs+=len(pmindex)
-                            try:
-                                ri = sequence.index(pairseq[0]) +k
-                                qi = qsequence.index(pairseq[1]) +k
-                            except:
-                                continue
-
-                            #Append series to remove from accessory
-                            denseranges.append((qi-k, qi+k+1))
-                            denseranges_ref.append((ri-k, ri+k+1))
-
-                            snpdiffs = list(np.diff(pmindex))
+                        snpdiffs = list(np.diff(pmindex))
+                        rb = sequence[ri-1]
+                        qb = qsequence[qi-1]
+                        rdict[ri] = rb
+                        qdict[ri] = qb
+                        for x in snpdiffs:
+                            rb=''
+                            qb=''
+                            ri+=x
+                            qi+=x
                             rb = sequence[ri-1]
                             qb = qsequence[qi-1]
                             rdict[ri] = rb
                             qdict[ri] = qb
-                            for x in snpdiffs:
-                                rb=''
-                                qb=''
-                                ri+=x
-                                qi+=x
-                                rb = sequence[ri-1]
-                                qb = qsequence[qi-1]
-                                rdict[ri] = rb
-                                qdict[ri] = qb
 
-                            denseSNP_L += (Lseqlen+1)
+                        denseSNP_L += (Lseqlen+1)
 
-                            break
-                    else:
-                        if len(pmindex) > indellen:
-                            SNPsonly=(len(pmindex)-indellen)
-                            if ((SNPsonly)/(len(pairseq[0])-indellen)) <0.26:
-                                SNPs+=(SNPsonly)
-                                denseSNP_L += (Lseqlen+1)
-                                break
+                        break
 
     return(SNPs, rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
 
@@ -421,7 +409,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         SNPs = matchedSNPs+newdense
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         output.write(result)
-
+    exit()
     refsequencefull=''
     for record in screed.open(reference):
         refsequencefull += record.sequence
