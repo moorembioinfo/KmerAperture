@@ -2,13 +2,13 @@
 
 ![Python](https://badges.aleen42.com/src/python.svg) ![conda](https://img.shields.io/badge/%E2%80%8B-conda-%2344A833.svg?style=flat&logo=anaconda&logoColor=44A833)
 
-Alignment-free estimation of core and accessory distances in closely related genomes.
+Alignment-free estimation of core and accessory distances in closely related genomes, including SNPs within k of one another
 
 
 
 ## Dependencies
 
-KmerAperture.py is written in python3 and requires the following python packages:
+KmerAperture is written in python3 and requires the following python packages:
 
 > - numpy
 > - screed
