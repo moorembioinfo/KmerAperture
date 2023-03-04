@@ -9,7 +9,7 @@ import sys
 import itertools
 import math
 from utils import canon, build_kmers, read_kmers_from_file
-from utils import get_uniques, get_ranges, get_indices
+from utils import get_uniques, get_ranges, get_indices, rangedict
 from Bio.Seq import reverse_complement
 import os
 import subprocess
@@ -285,7 +285,7 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
 
     return(querydict, refdict)
 
-def outputs(refdict, querynamedict, rdict, qdict, queryaccdict, notcoresites, positions_dict):
+def outputs(refdict, querynamedict, rdict, qdict, queryaccdict, notcoresites, positions_dict, querynamedict_wgaps):
     '''
     Generate kmeraperture outputs
     '''
@@ -305,14 +305,13 @@ def outputs(refdict, querynamedict, rdict, qdict, queryaccdict, notcoresites, po
         for col_name, sequence in concatenated.items():
             f.write(f'>{col_name.split("./")[-1]}\n{sequence}\n')
 
-    #Output core genome
-    querynamedict['reference'] = positions_dict
-    df_core = pd.DataFrame.from_dict(querynamedict, orient='columns')
+    #Output full alignment
+    querynamedict_wgaps['reference'] = positions_dict
+    df_core = pd.DataFrame.from_dict(querynamedict_wgaps, orient='columns')
     df_core = df_core.mask(df_core.isnull() | (df_core == '') | (df_core.isna()), df_core['reference'], axis=0)
-    df_core.drop(index=notcoresites, inplace=True)
     df_core.sort_index(inplace=True)
     concatenatedcore = df_core.apply(lambda x: ''.join(x.astype(str)))
-    with open('core_alignment.fasta', 'w') as f:
+    with open('full_align.fasta', 'w') as f:
         for col_name, sequence in concatenatedcore.items():
             f.write(f'>{col_name.split("./")[-1]}\n{sequence}\n')
 
@@ -344,6 +343,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
     output.write('gID,SNP,acc1,acc2\n')
     querynamedict = {}
     refdict = {}
+    querynamedict_wgaps = {}
 
     refacclists = []
 
@@ -390,7 +390,13 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         refdict.update(rdict)
         querydict.update(qdict)
+        #Make dict of dicts with query name as key
         querynamedict[genome2] = querydict
+        #Add positions not mapped to reference
+        gapsdict = rangedict(accranges1)
+        querydict.update(gapsdict)
+        querynamedict_wgaps[genome2] = querydict
+
 
         #numinsertions, insertionsdict, insranges, totalinsbp = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
         numinsertions=0
@@ -409,6 +415,8 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         SNPs = matchedSNPs+newdense
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         output.write(result)
+
+
     refsequencefull=''
     for record in screed.open(reference):
         refsequencefull += record.sequence
