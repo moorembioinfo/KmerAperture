@@ -64,17 +64,24 @@ Filename | Description |
 --------------|-------|
 `SNPmatrix.polymorphic.csv` |  Matrix of polymorphic sites for all genomes against the reference |
 `polymorphicsites.fasta` |     Multifasta file of polymorphic sites compared with the reference  |
-`core_alignment.fasta` |      Core genome SNP alignment. For sequence present in ≥95% of genomes including the reference |
+`full_align.fasta` |      Full genome SNP alignment. SNPs, invariant sites and query-gaps are included |
 `accessory_coords.json` |     Coordinates of sequence accessory to each query genome compared with the reference |
 `{referencename}_{k}.csv` | Comma separated results for each genomes SNP and indel count compared with reference and accessory size |
 
-To use the core genome SNPs for a phylogeny with branch lengths corrected for recombination use [iqtree](https://github.com/Cibiv/IQ-TREE) and [ClonalFrameML](https://github.com/xavierdidelot/ClonalFrameML):
+To use the core genome SNPs for a phylogeny with branch lengths corrected for recombination use [BactCore](https://github.com/moorembioinfo/BactCore), [iqtree](https://github.com/Cibiv/IQ-TREE) and [ClonalFrameML](https://github.com/xavierdidelot/ClonalFrameML):
 
+```shell
+BactCore full_align.fasta > core_alignment.fasta
+iqtree -s core_alignment.fasta -B 1000
+ClonalFrameML core_alignment.fasta.treefile core_alignment.fasta kmeraperture
+```
+They may first be installed with:
 ```shell
 conda install -c conda-forge -c bioconda -c defaults clonalframeml
 conda install -c bioconda iqtree
-iqtree -s core_alignment.fasta -B 1000
-ClonalFrameML core_alignment.fasta.treefile core_alignment.fasta kmeraperture
+git clone https://github.com/moorembioinfo/BactCore.git
+cd BactCore
+g++ -std=c++11 -O3 -fopenmp BactCore.cpp -o BactCore
 ```
 
 <br />
