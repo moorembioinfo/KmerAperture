@@ -5,7 +5,17 @@ from Bio.Seq import reverse_complement
 import os
 import pandas as pd
 
+def compl(base):
+    basedict = {'A':'T', 'T':'A', 'G': 'C', 'C':'G'}
+    return(basedict.get(base))
 
+def rangedict(accranges):
+    rng_dict = {}
+    for r in accranges:
+        start, end = r
+        for i in range(start, end+1):
+            rng_dict[i] = '-'
+    return rng_dict
 
 def canon(naivekmers):
 
