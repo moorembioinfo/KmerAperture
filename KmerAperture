@@ -7,6 +7,7 @@ import time
 import argparse
 import sys
 import itertools
+from itertools import repeat
 import math
 from utils import canon, build_kmers, read_kmers_from_file, compl
 from utils import get_uniques, get_ranges, get_indices, rangedict
@@ -14,6 +15,7 @@ from Bio.Seq import reverse_complement
 import os, re
 import subprocess
 import json
+from concurrent.futures import ProcessPoolExecutor
 dir_path = str(os.path.dirname(os.path.realpath(__file__)))
 
 
@@ -45,6 +47,13 @@ def add_args(a):
         help="Run KmerAperture in python only. Slower than using the ocaml parser",
         default=False,
         action='store_true',
+    )
+    parser.add_argument(
+        "--proc",
+        "-p",
+        help="Number of processes. Default: 1",
+        type=int,
+        default=1
     )
     args = parser.parse_args(a)
     return args
@@ -84,10 +93,11 @@ def filter_accessory_positions(accranges, indelranges, denseranges, ksize):
     return(acconly, acclength)
 
 
-def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfilename):
+def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfilename):
 
     '''
-    Find contiguous kmer series from size k+2 to n(k-1)+1
+    Find contiguous kmer series from size k to n(k-1)+1
+    (n = upperboundSNP)
     Extract full sequence and pattern match SNPs for count and extract
     '''
 
@@ -194,32 +204,32 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, filename, qfile
     SNPs = len(qdict)
     return(SNPs, rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
 
-def get_indels(kmer2ranges, k, kmers2, kmers1):
-    '''
-    Match kmers flanking series in alternate genome(s)
-    if they're contiguous in alternate
-    '''
-
-    totalins = 0
-    insdict = {}
-    insranges = []
-    totalinsbp = 0
-
-    for pair2 in kmer2ranges:
-        rangediff2 = pair2[1] - pair2[0]
-        if (rangediff2 >= (k+2)) and (rangediff2 <= (k+49)):
-            try:
-                kmer1 = kmers2[pair2[0]-1]
-                kmer2 = kmers2[pair2[1]]
-                refpos = get_indices([kmer1, kmer2], kmers1)
-                if (refpos[0] + k +1) == (refpos[1]):
-                    indelsize = (rangediff2-k)+1
-                    totalinsbp += indelsize
-                    totalins+=1
-                    insranges.append(pair2)
-            except:
-                continue
-    return totalins, insdict, insranges, totalinsbp
+#def get_indels(kmer2ranges, k, kmers2, kmers1):
+#    '''
+#    Match kmers flanking series in alternate genome(s)
+#    if they're contiguous in alternate
+#    '''
+#
+#    totalins = 0
+#    insdict = {}
+#    insranges = []
+#    totalinsbp = 0
+#
+#    for pair2 in kmer2ranges:
+#        rangediff2 = pair2[1] - pair2[0]
+#        if (rangediff2 >= (k+2)) and (rangediff2 <= (k+49)):
+#            try:
+#                kmer1 = kmers2[pair2[0]-1]
+#                kmer2 = kmers2[pair2[1]]
+#                refpos = get_indices([kmer1, kmer2], kmers1)
+#                if (refpos[0] + k +1) == (refpos[1]):
+#                    indelsize = (rangediff2-k)+1
+#                    totalinsbp += indelsize
+#                    totalins+=1
+#                    insranges.append(pair2)
+#            except:
+#                continue
+#    return totalins, insdict, insranges, totalinsbp
 
 
 def outputs(refsequencefull, querynamedict_wgaps):
@@ -250,31 +260,13 @@ def outputs(refsequencefull, querynamedict_wgaps):
     print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
 
-def run_KmerAperture(gList, reference, ksize, pyonly):
+def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
 
-    print(f'Reading in reference genome {reference}')
-    if pyonly:
-        kmers1 = read_kmers_from_file(reference, ksize)
-    else:
-        ocamlparser = dir_path+'/parser/KmerApertureParser'
-        proc = subprocess.Popen([ocamlparser, reference, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
-        kmers1 = proc.stdout.read().split()
-    kmers1_=[]
-    for kmer in kmers1:
-        if not 'N' in kmer:
-            kmers1_.append(kmer)
-    kmer1set=set(kmers1_)
-
-
-    outname = f'./{reference}_{ksize}.csv'
-    output=open(outname, "w")
-    output.write('gID,SNP,acc1,acc2\n')
+    results=[]
     querynamedict = {}
     refdict = {}
     querynamedict_wgaps = {}
-
     refacclists = []
-
     queryaccdict = {}
 
     for genome2 in gList:
@@ -307,7 +299,6 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
         kmer1ranges_=list(kmer1ranges)
         SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges_, ksize)
 
-
         newdense,rdict,qdict,denseSNP_L,denseranges,denseranges_ref = find_dense_SNP2(kmer2ranges_,kmer1ranges_,ksize,kmers2,kmers1,reference,genome2)
 
         querydict={}
@@ -333,14 +324,10 @@ def run_KmerAperture(gList, reference, ksize, pyonly):
 
         SNPs = newdense
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
-        output.write(result)
+        results.append(result)
 
+    return querynamedict_wgaps, results
 
-    refsequencefull=''
-    for record in screed.open(reference):
-        refsequencefull += record.sequence
-    #positions_dict = {i: char for i, char in enumerate(refsequencefull)}
-    outputs(refsequencefull, querynamedict_wgaps)
 
 if __name__=='__main__':
 
@@ -349,6 +336,7 @@ if __name__=='__main__':
     genomedir = args.fastas
     kmersize = args.kmersize
     pyonly = args.pyonly
+    nproc = args.proc
 
     gList =[]
     for filename in os.listdir(genomedir):
@@ -357,8 +345,69 @@ if __name__=='__main__':
 
     print(f"Found {len(gList)} genomes for comparison")
 
-    run_KmerAperture(
-        gList,
-        reference,
-        kmersize,
-        pyonly)
+
+    print(f'Reading in reference genome {reference}')
+    if pyonly:
+        kmers1 = read_kmers_from_file(reference, kmersize)
+    else:
+        ocamlparser = dir_path+'/parser/KmerApertureParser'
+        proc = subprocess.Popen([ocamlparser, reference, str(kmersize)], stdout=subprocess.PIPE, encoding='utf8')
+        kmers1 = proc.stdout.read().split()
+    kmers1_=[]
+    for kmer in kmers1:
+        if not 'N' in kmer:
+            kmers1_.append(kmer)
+    kmer1set=set(kmers1_)
+
+
+    outname = f'./{reference}_{kmersize}.csv'
+    output=open(outname, "w")
+    output.write('gID,SNP,acc1,acc2\n')
+
+
+    if nproc ==1:
+        results = run_KmerAperture(
+            gList,
+            reference,
+            kmersize,
+            pyonly,
+            kmers1,
+            kmer1set)
+
+        querynamedict_wgaps = results[0]
+        refsequencefull=''
+        for record in screed.open(reference):
+            refsequencefull += record.sequence
+        outputs(refsequencefull, querynamedict_wgaps)
+
+        for line in results[1]:
+            output.write(f'{line}')
+
+
+    else:
+        chunk_size = int(len(gList) / nproc)
+        chunks = [
+            gList[i : i + chunk_size]
+            for i in range(0, len(gList), chunk_size)
+        ]
+
+        querynamedict_wgaps = {}
+        with ProcessPoolExecutor(nproc) as executor:
+            results = list(executor.map(
+            run_KmerAperture,
+            chunks,
+            repeat(reference),
+            repeat(kmersize),
+            repeat(pyonly),
+            repeat(kmers1),
+            repeat(kmer1set)
+                )
+            )
+        for r in results:
+            output.write(f'{r[1][0]}')
+            querynamedict_wgaps.update(r[0])
+
+        refsequencefull=''
+        for record in screed.open(reference):
+            refsequencefull += record.sequence
+        outputs(refsequencefull, querynamedict_wgaps)
