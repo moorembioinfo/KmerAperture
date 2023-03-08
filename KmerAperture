@@ -270,14 +270,12 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
     queryaccdict = {}
 
     for genome2 in gList:
-        #Generate canonical kmers for query genome
-        print(f'Reading in query genome {genome2}')
         if pyonly:
             kmers2 = read_kmers_from_file(genome2, ksize)
         else:
             proc = subprocess.Popen([ocamlparser, genome2, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
             kmers2 = proc.stdout.read().split()
-        print(f'Processing {genome2} k-mers')
+        print(f'Extracting SNPs from {genome2} k-mer series')
         kmers2_=[]
         for kmer in kmers2:
             if not 'N' in kmer:
@@ -390,6 +388,7 @@ if __name__=='__main__':
             gList[i : i + chunk_size]
             for i in range(0, len(gList), chunk_size)
         ]
+        print(chunks)
 
         querynamedict_wgaps = {}
         with ProcessPoolExecutor(nproc) as executor:
@@ -404,8 +403,11 @@ if __name__=='__main__':
                 )
             )
         for r in results:
-            output.write(f'{r[1][0]}')
             querynamedict_wgaps.update(r[0])
+            for line in r[1]:
+                output.write(line)
+                #output.write(f'{r[1][0]}')
+
 
         refsequencefull=''
         for record in screed.open(reference):
