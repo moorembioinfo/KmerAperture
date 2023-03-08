@@ -388,7 +388,6 @@ if __name__=='__main__':
             gList[i : i + chunk_size]
             for i in range(0, len(gList), chunk_size)
         ]
-        print(chunks)
 
         querynamedict_wgaps = {}
         with ProcessPoolExecutor(nproc) as executor:
