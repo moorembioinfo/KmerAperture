@@ -47,6 +47,8 @@ Flag &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Short flag | Desc
 `--reference` |     `-r` |  Path and file name of fasta reference genome | ✅ | 
 `--kmersize` |      `-k` |  k size |                             | 21
 `--pyonly` |     `-py` |  Run without fast ocaml kmer parser |   | False
+`--proc` |     `-p` |  Run with multiple processors |   | 1
+
 
 
 
