@@ -16,7 +16,11 @@
 (* (c) 2023 Paolo Ribeca, <paolo.ribeca@gmail.com>
     Compile with
      ocamlopt.opt -O3 -o KmerApertureParser KmerApertureParser.ml -ccopt -static
-    Parameters are file name and k-mer size *)
+    Parameters are file name and k-mer size.
+    An additional -c option at the end of the command concatenates sequences
+     before generating k-mers.
+    Example:
+     KMerApertureParser input.fa 15 -c *)
 
 let rc s =
   let b = Bytes.of_string s in
@@ -38,34 +42,37 @@ let rc s =
   Bytes.to_string b
 
 let () =
-  if Array.length Sys.argv <> 3 then begin
-    Printf.eprintf "Syntax: KmerApertureParser <FASTA_input> <k>\n";
+  let num_params = Array.length Sys.argv in
+  if num_params <> 3 && (num_params <> 4 || Sys.argv.(3) <> "-c") then begin
+    Printf.eprintf "Syntax: KmerApertureParser <FASTA_input> <k> [-c]\n";
     Printf.eprintf " The input file can contain more than one sequence\n%!";
     exit 1
   end;
   let file = open_in Sys.argv.(1) and k = int_of_string Sys.argv.(2) in
   let buf = Buffer.create 1024 in
-  let process_contig () =
-    let seq = Buffer.contents buf in
-    let top = String.length seq - k in
-    for i = 0 to top do
-      let kmer = String.sub seq i k in
-      let kmer_rc = rc kmer in
-      min kmer kmer_rc |> Printf.printf "%s\n"
-    done;
-    Buffer.clear buf in
+  let process_contig is_last =
+    if is_last || num_params = 3 then begin
+      let seq = Buffer.contents buf in
+      let top = String.length seq - k in
+      for i = 0 to top do
+        let kmer = String.sub seq i k in
+        let kmer_rc = rc kmer in
+        min kmer kmer_rc |> Printf.printf "%s\n"
+      done;
+      Buffer.clear buf
+    end in
   begin try
     while true do
       let line = input_line file in
       if line <> "" then begin
         if line.[0] = '>' then
-          process_contig ()
+          process_contig false
         else
           Buffer.add_string buf line
       end
     done
   with End_of_file ->
-    process_contig ()
+    process_contig true
   end;
   close_in file
 
