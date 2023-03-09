@@ -366,6 +366,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         querydict.update(qdict)
         querydict.update(oqdict)
         querynamedict[genome2] = querydict
+        SNPs = len(querydict)
         gapsdict = rangedict(accranges1)
         querydict.update(gapsdict)
         querynamedict_wgaps[genome2] = querydict
@@ -385,7 +386,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         queryaccdict[genome2] = acc2only
         refacclists.append(acc1only)
 
-        SNPs = len(querydict)
+
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         results.append(result)
 
