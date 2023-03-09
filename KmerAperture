@@ -333,7 +333,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         if pyonly:
             kmers2 = read_kmers_from_file(genome2, ksize)
         else:
-            proc = subprocess.Popen([ocamlparser, genome2, str(ksize)], stdout=subprocess.PIPE, encoding='utf8')
+            proc = subprocess.Popen([ocamlparser, genome2, str(ksize), '-c'], stdout=subprocess.PIPE, encoding='utf8')
             kmers2 = proc.stdout.read().split()
         print(f'Extracting SNPs from {genome2} k-mer series')
         kmers2_=[]
@@ -362,7 +362,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
         klist1, klist1pos = assert_kmer(SNPranges1, ksize, kmers1)
         middlekinter = set(klist1).intersection(set(klist2))
-        oqdict, ordict= get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict)
+        oqdict, ordict= get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
 
         querydict={}
         refdict.update(rdict)
@@ -417,7 +417,7 @@ if __name__=='__main__':
         kmers1 = read_kmers_from_file(reference, kmersize)
     else:
         ocamlparser = dir_path+'/parser/KmerApertureParser'
-        proc = subprocess.Popen([ocamlparser, reference, str(kmersize)], stdout=subprocess.PIPE, encoding='utf8')
+        proc = subprocess.Popen([ocamlparser, reference, str(kmersize), '-c'], stdout=subprocess.PIPE, encoding='utf8')
         kmers1 = proc.stdout.read().split()
     kmers1_=[]
     for kmer in kmers1:
