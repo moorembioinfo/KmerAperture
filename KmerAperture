@@ -224,9 +224,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                     pmindex = sorted([index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]])
 
                     if (len(pmindex)/len(pairseq[0])) <0.25:
-                        print(L)
-                        print(len(pairseq[0]))
-                        print(pmindex)
 
                         ri = sequence.find(pairseq[0])
 
