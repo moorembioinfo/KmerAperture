@@ -75,6 +75,65 @@ def get_accessory(kmer1ranges, ksize):
             accranges.append(pair)
     return allSNPranges, accranges, acclength
 
+
+def assert_kmer(kmerranges, k, kmers2):
+    '''
+    Match middle k-mers with middle base removed
+    for both possible strands
+    '''
+    klist = []
+    positiondict ={}
+    for pair in kmerranges:
+        kp=[]
+        startpos = pair[0]
+        endpos = pair[1]
+        kgap = int((k-1)/2)
+        km = kmers2[startpos+kgap]
+        km_rc = screed.rc(km)
+        mkmer0 = km[:kgap] + km[kgap+1:]
+        mkmer1 = km_rc[:kgap] + km_rc[kgap+1:]
+        klist.extend([mkmer0, mkmer1])
+
+        positiondict[mkmer0] = (startpos+k) #Should be -1, but SNP positions are 1 indexed
+        positiondict[mkmer1] = (startpos+k) #-1
+    return(klist, positiondict)
+
+
+def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
+    '''
+    Find and extract SNPs estimated by KmerAperture
+    '''
+
+    querydict = {}
+    sequence=''
+    for record in screed.open(reference):
+        sequence += record.sequence
+    qsequence =''
+    for record in screed.open(qfilename):
+        qsequence += record.sequence
+
+    for mkmer in list(middlekinter):
+        refpos = klist1pos.get(mkmer)
+        refseq = sequence[refpos-5:refpos+4]
+        querypos = klist2pos.get(mkmer)
+        queryseq = qsequence[querypos-5:querypos+4]
+        rcseq = screed.rc(queryseq)
+        km = queryseq[:4]+queryseq[5:]
+        refkm = refseq[:4]+refseq[5:]
+        rckm=rcseq[:4]+rcseq[5:]
+        SNP=''
+        if km == refkm:
+            SNP=queryseq[4]
+        elif rckm == refkm:
+            SNP=rcseq[4]
+        refbase = refseq[4]
+
+        refdict[refpos] = refbase
+        querydict[refpos] = SNP
+
+    return(querydict, refdict)
+
+
 def filter_accessory_positions(accranges, indelranges, denseranges, ksize):
     '''
     For all k-mer series >k assume they're query-accessory
@@ -164,14 +223,18 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                     pmindex = []
                     pmindex = sorted([index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]])
 
-                    if (len(pmindex)/len(pairseq[0])) <0.16:
-                        SNPs+=len(pmindex)
+                    if (len(pmindex)/len(pairseq[0])) <0.25:
+                        print(L)
+                        print(len(pairseq[0]))
+                        print(pmindex)
+
                         ri = sequence.find(pairseq[0])
 
                         if key == 'reg':
                             qi = qsequence.find((pairseq[1]))
                         if key =='rc':
                             qi = qsequence.find(str(reverse_complement(pairseq[1])))
+
                         if (ri != -1) and (qi != -1):
                             ri+=k
                             qi+=k
@@ -198,11 +261,8 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                                     count+=1
 
 
-
                             #denseSNP_L += (Lseqlen+1)
-
-    SNPs = len(qdict)
-    return(SNPs, rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
+    return(rdict, qdict, denseSNP_L, denseranges, denseranges_ref)
 
 #def get_indels(kmer2ranges, k, kmers2, kmers1):
 #    '''
@@ -297,15 +357,23 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         kmer1ranges_=list(kmer1ranges)
         SNPranges1, accranges1, acclength1 = get_accessory(kmer1ranges_, ksize)
 
-        newdense,rdict,qdict,denseSNP_L,denseranges,denseranges_ref = find_dense_SNP2(kmer2ranges_,kmer1ranges_,ksize,kmers2,kmers1,reference,genome2)
+        rdict,qdict,denseSNP_L,denseranges,denseranges_ref = find_dense_SNP2(kmer2ranges_,kmer1ranges_,ksize,kmers2,kmers1,reference,genome2)
+
+        klist2, klist2pos = assert_kmer(SNPranges2, ksize, kmers2)
+        klist1, klist1pos = assert_kmer(SNPranges1, ksize, kmers1)
+        middlekinter = set(klist1).intersection(set(klist2))
+        oqdict, ordict= get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict)
 
         querydict={}
         refdict.update(rdict)
         querydict.update(qdict)
+        querydict.update(oqdict)
         querynamedict[genome2] = querydict
         gapsdict = rangedict(accranges1)
         querydict.update(gapsdict)
         querynamedict_wgaps[genome2] = querydict
+
+
 
         #numinsertions, insertionsdict, insranges, totalinsbp = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
         #numinsertions=0
@@ -320,7 +388,7 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         queryaccdict[genome2] = acc2only
         refacclists.append(acc1only)
 
-        SNPs = newdense
+        SNPs = len(querydict)
         result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         results.append(result)
 
