@@ -36,7 +36,7 @@ def add_args(a):
     parser.add_argument(
         "--kmersize",
         "-k",
-        help="k-mer size (k)",
+        help="k-mer size (k). Must be an odd number",
         type=int,
         default=19,
         required=False,
@@ -134,15 +134,14 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     return(querydict, refdict)
 
 
-def filter_accessory_positions(accranges, indelranges, denseranges, ksize):
+def filter_accessory_positions(accranges, denseranges, ksize):
     '''
     For all k-mer series >k assume they're query-accessory
     Filter out those that instead represent dense SNPs or indels
     '''
-    indelranges.extend(denseranges)
     acconly =[]
     for ranges in accranges:
-        if ranges not in indelranges:
+        if ranges not in denseranges:
             acconly.append(ranges)
 
     acclength =0
@@ -236,8 +235,11 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                             ri+=k
                             qi+=k
 
-                            denseranges.append((qi-k, qi+k+1))
-                            denseranges_ref.append((ri-k, ri+k+1))
+                            #denseranges.append((qi-k, qi+k+1))
+                            #denseranges_ref.append((ri-k, ri+k+1))
+                            denseranges.append((qi-k, (qi+L)-k))
+                            denseranges_ref.append((ri-k, (ri+L)-k))
+
 
                             #snpdiffs = list(np.diff(pmindex))
                             rb = sequence[ri-1]
@@ -380,8 +382,8 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         #Adjust accessory to not include dense SNPs and indels
         acclength1_=0
         acclength2_=0
-        acc2only, acclength2_ = filter_accessory_positions(accranges2, insranges, denseranges, ksize)
-        acc1only, acclength1_ = filter_accessory_positions(accranges1, insranges, denseranges_ref, ksize)
+        acc2only, acclength2_ = filter_accessory_positions(accranges2, denseranges, ksize)
+        acc1only, acclength1_ = filter_accessory_positions(accranges1, denseranges_ref, ksize)
 
         queryaccdict[genome2] = acc2only
         refacclists.append(acc1only)
@@ -401,6 +403,11 @@ if __name__=='__main__':
     kmersize = args.kmersize
     pyonly = args.pyonly
     nproc = args.proc
+
+    if (kmersize % 2) != 1:
+        print('\nPlease enter an odd numbered integer for k\n\nExiting...')
+        exit()
+
 
     gList =[]
     for filename in os.listdir(genomedir):
