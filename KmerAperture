@@ -305,34 +305,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
 #    return totalins, insdict, insranges, totalinsbp
 
 
-def outputs(refsequencefull, querynamedict_wgaps):
-    '''
-    Generate kmeraperture outputs
-    '''
-    print('\n\nGenerating output...\n')
-
-    outname = 'full_align.align'
-    output=open(outname, "w")
-    refseq_list = list(refsequencefull)
-    for queryname, mutations in querynamedict_wgaps.items():
-        queryseq_list = []
-        queryseq=''
-        queryseq_list = refseq_list.copy()
-        for pos, mut in mutations.items():
-            pos-=1
-            if mut:
-                queryseq_list[pos] = mut
-        queryseq = ''.join(queryseq_list)
-        output.write(f'>{queryname}\n{queryseq}\n')
-
-
-    #Output Accessory coordinates
-    with open('accessory_coords.json', 'w') as f:
-        json.dump(queryaccdict, f)
-
-    print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
-
-
 def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
 
     results=[]
@@ -404,8 +376,34 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         result =f"{genome2},{SNPs},{acclength1_+refrepeats},{acclength2_+queryrepeats}\n"
         results.append(result)
 
-    return querynamedict_wgaps, results
+    return querynamedict_wgaps, results, queryaccdict
 
+def outputs(refsequencefull, querynamedict_wgaps, queryaccessory):
+    '''
+    Generate kmeraperture outputs
+    '''
+    print('\n\nGenerating output...\n')
+
+    outname = 'full_align.align'
+    output=open(outname, "w")
+    refseq_list = list(refsequencefull)
+    for queryname, mutations in querynamedict_wgaps.items():
+        queryseq_list = []
+        queryseq=''
+        queryseq_list = refseq_list.copy()
+        for pos, mut in mutations.items():
+            pos-=1
+            if mut:
+                queryseq_list[pos] = mut
+        queryseq = ''.join(queryseq_list)
+        output.write(f'>{queryname}\n{queryseq}\n')
+
+
+    #Output Accessory coordinates
+    with open('accessory_coords.json', 'w') as f:
+        json.dump(queryaccessory, f)
+
+    print('\n\n\nFinished, thanks for using KmerAperture!\n\n\n')
 
 if __name__=='__main__':
 
@@ -458,10 +456,11 @@ if __name__=='__main__':
             kmer1set)
 
         querynamedict_wgaps = results[0]
+        queryaccessory = results[2]
         refsequencefull=''
         for record in screed.open(reference):
             refsequencefull += record.sequence
-        outputs(refsequencefull, querynamedict_wgaps)
+        outputs(refsequencefull, querynamedict_wgaps, queryaccessory)
 
         for line in results[1]:
             output.write(f'{line}')
@@ -475,6 +474,7 @@ if __name__=='__main__':
         ]
 
         querynamedict_wgaps = {}
+        queryaccessory = {}
         with ProcessPoolExecutor(nproc) as executor:
             results = list(executor.map(
             run_KmerAperture,
@@ -488,6 +488,7 @@ if __name__=='__main__':
             )
         for r in results:
             querynamedict_wgaps.update(r[0])
+            queryaccessory.update(r[2])
             for line in r[1]:
                 output.write(line)
                 #output.write(f'{r[1][0]}')
@@ -496,4 +497,4 @@ if __name__=='__main__':
         refsequencefull=''
         for record in screed.open(reference):
             refsequencefull += record.sequence
-        outputs(refsequencefull, querynamedict_wgaps)
+        outputs(refsequencefull, querynamedict_wgaps, queryaccessory)
