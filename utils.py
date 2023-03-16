@@ -5,6 +5,7 @@ from Bio.Seq import reverse_complement
 import os
 import pandas as pd
 
+
 def compl(base):
     basedict = {'A':'T', 'T':'A', 'G': 'C', 'C':'G'}
     return(basedict.get(base))
@@ -18,7 +19,6 @@ def rangedict(accranges):
     return rng_dict
 
 def canon(naivekmers):
-
     allkmers = []
     for kmer in naivekmers:
         canonical_kmer=kmer
@@ -26,7 +26,6 @@ def canon(naivekmers):
         if kmer> rckmer:
             canonical_kmer=rckmer
         allkmers.append(canonical_kmer)
-
     return allkmers
 
 def build_kmers(sequence, ksize):
