@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+K="$1"
+if [[ "$K" == "" ]]; then
+  K=19
+fi
+
+cat /dev/stdin | FASTools -F | awk -F '\t' -v K="$K" '
+  {
+    print "Processing \047"$1"\047..." > "/dev/stderr"
+    l=length($2)
+    ids[$1]=length(id)+1
+    id=ids[$1]
+    names[id]=$1
+    for (i=1;i<=l-K+1;++i) {
+      kmer=substr($2,i,K)
+      pr=hits[kmer]
+      hits[kmer]=pr (pr==""?"":"\t")id
+    }
+  }
+  END {
+    print "Postprocessing..." > "/dev/stderr"
+    for (kmer in hits) {
+      pr=hits[kmer]
+      ++groups[pr]
+    }
+    for (group in groups) {
+      split(group,s,"\t")
+      delete occs
+      for (i in s)
+        ++occs[s[i]];
+      printf groups[group]
+      for (id in names)
+        printf "\t"names[id]"\t"(id in occs?occs[id]:0);
+      printf "\n"
+    }
+  }
+'
+
