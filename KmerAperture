@@ -56,6 +56,12 @@ def add_args(a):
         type=int,
         default=1
     )
+    #parser.add_argument(
+    #    "--snpsonly",
+    #    help="Run to extract SNPs and alignment only for speed",
+    #    type=int,
+    #    default=1
+    #)
     args = parser.parse_args(a)
     return args
 
@@ -84,9 +90,19 @@ def mappability(kmer2set, kmer1set, kmers1, kmers2):
     ck2 = Counter([i for i in kmers2 if i in inter])
     c1u = (ck1 - ck2)
     c2u = (ck2 - ck1)
+
     refrepeats = sum(c1u.values())
     queryrepeats = sum(c2u.values())
-    return refrepeats, queryrepeats
+    queryrepkmers = []
+    for keys in list(ck1.keys()):
+        if ck1.get(keys) > 1:
+            queryrepkmers.append(keys)
+    refrepkmers = []
+    for keys in list(ck2.keys()):
+        if ck2.get(keys) > 1:
+            queryrepkmers.append(keys)
+
+    return refrepeats, queryrepeats, queryrepkmers, refrepkmers
 
 def assert_kmer(kmerranges, k, kmers2):
     '''
@@ -145,11 +161,13 @@ def get_SNPs(middlekinter, klist1pos, klist2pos, sequence, qfilename, refdict):
     return(querydict, refdict)
 
 
-def filter_accessory_positions(accranges, denseranges, ksize):
+def filter_accessory_positions(accranges, denseranges, repranges, ksize):
     '''
     For all k-mer series >k assume they're query-accessory
     Filter out those that instead represent dense SNPs or indels
     '''
+
+    denseranges.extend(repranges)
     acconly =[]
     for ranges in accranges:
         if ranges not in denseranges:
@@ -327,18 +345,19 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
                 kmers2_.append(kmer)
         kmer2set=set(kmers2_)
 
+
         kmer2uniq = get_uniques(kmer2set, kmer1set)
         kmer2indices = get_indices(kmer2uniq, kmers2)
         kmer2indices.sort()
         kmer2ranges = get_ranges(kmer2indices)
-        kmer2ranges_=list(kmer2ranges)
+        kmer2ranges_= list(kmer2ranges)
         SNPranges2, accranges2 = get_accessory(kmer2ranges_, ksize)
 
         kmer1uniq = get_uniques(kmer1set, kmer2set)
         kmer1indices = get_indices(kmer1uniq, kmers1)
         kmer1indices.sort()
         kmer1ranges = get_ranges(kmer1indices)
-        kmer1ranges_=list(kmer1ranges)
+        kmer1ranges_= list(kmer1ranges)
         SNPranges1, accranges1 = get_accessory(kmer1ranges_, ksize)
 
         rdict,qdict,denseSNP_L,denseranges,denseranges_ref = find_dense_SNP2(kmer2ranges_,kmer1ranges_,ksize,kmers2,kmers1,reference,genome2)
@@ -347,6 +366,34 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         klist1, klist1pos = assert_kmer(SNPranges1, ksize, kmers1)
         middlekinter = set(klist1).intersection(set(klist2))
         oqdict, ordict= get_SNPs(middlekinter, klist1pos, klist2pos, reference, genome2, refdict)
+
+        #Now get repeat-only ranges to filter later. All repeat-accessory kmers should be in combined kmer series
+        refrepeats, queryrepeats, queryrepetitivekmers, refrepetitivekmers = mappability(kmer2set, kmer1set, kmers1, kmers2)
+        queryrep_i = get_indices(set(queryrepetitivekmers), kmers2)
+        queryrep_i.sort()
+        queryrep_r_ = get_ranges(queryrep_i)
+        queryrep_r=list(queryrep_r_)
+        refrep_i = get_indices(set(refrepetitivekmers), kmers2)
+        refrep_i.sort()
+        refrep_r_ = get_ranges(refrep_i)
+        refrep_r=list(refrep_r_)
+
+        #Repeat all with repetitive kmers
+        kmer2uniq = get_uniques(kmer2set, kmer1set)
+        kmer2uniq = kmer2uniq.union(set(queryrepetitivekmers))
+        kmer2indices = get_indices(kmer2uniq, kmers2)
+        kmer2indices.sort()
+        kmer2ranges = get_ranges(kmer2indices)
+        kmer2ranges_= list(kmer2ranges)
+        SNPranges2_, accranges2 = get_accessory(kmer2ranges_, ksize)
+
+        kmer1uniq = get_uniques(kmer1set, kmer2set)
+        kmer1uniq = kmer1uniq.union(set(refrepetitivekmers))
+        kmer1indices = get_indices(kmer1uniq, kmers1)
+        kmer1indices.sort()
+        kmer1ranges = get_ranges(kmer1indices)
+        kmer1ranges_= list(kmer1ranges)
+        SNPranges1_, accranges1 = get_accessory(kmer1ranges_, ksize)
 
         querydict={}
         refdict.update(rdict)
@@ -357,24 +404,23 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         gapsdict = rangedict(accranges1)
         querydict.update(gapsdict)
         querynamedict_wgaps[genome2] = querydict
-
-        #numinsertions, insertionsdict, insranges, totalinsbp = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
-        #numinsertions=0
-        insranges=[]
-
         #Adjust accessory to not include dense SNPs and indels
         acclength1_=0
         acclength2_=0
-        acc2only, acclength2_ = filter_accessory_positions(accranges2, denseranges, ksize)
-        acc1only, acclength1_ = filter_accessory_positions(accranges1, denseranges_ref, ksize)
+        acc2only, acclength2_ = filter_accessory_positions(accranges2, denseranges, queryrep_r, ksize)
+        acc1only, acclength1_ = filter_accessory_positions(accranges1, denseranges_ref, refrep_r, ksize)
 
         queryaccdict[genome2] = acc2only
         refacclists.append(acc1only)
 
-        refrepeats, queryrepeats = mappability(kmer2set, kmer1set, kmers1, kmers2)
+        #numinsertions, insertionsdict, insranges, totalinsbp = get_indels(kmer2ranges_, ksize, kmers2, kmers1)
+        #numinsertions=0
+        #insranges=[]
 
-        result =f"{genome2},{SNPs},{acclength1_+refrepeats},{acclength2_+queryrepeats}\n"
+        result =f"{genome2},{SNPs},{acclength1_},{acclength2_}\n"
         results.append(result)
+
+
 
     return querynamedict_wgaps, results, queryaccdict
 
@@ -413,6 +459,7 @@ if __name__=='__main__':
     kmersize = args.kmersize
     pyonly = args.pyonly
     nproc = args.proc
+    snpsonly = args.snpsonly
 
     if (kmersize % 2) != 1:
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
