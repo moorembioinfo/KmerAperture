@@ -459,7 +459,7 @@ if __name__=='__main__':
     kmersize = args.kmersize
     pyonly = args.pyonly
     nproc = args.proc
-    snpsonly = args.snpsonly
+    #snpsonly = args.snpsonly
 
     if (kmersize % 2) != 1:
         print('\nPlease enter an odd numbered integer for k\n\nExiting...')
