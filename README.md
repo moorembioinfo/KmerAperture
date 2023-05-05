@@ -64,9 +64,7 @@ A reference genome and a directory of assembled query genomes (fasta format)
 
 Filename | Description | 
 --------------|-------|
-`SNPmatrix.polymorphic.csv` |  Matrix of polymorphic sites for all genomes against the reference |
-`polymorphicsites.fasta` |     Multifasta file of polymorphic sites compared with the reference  |
-`full_align.fasta` |      Full genome SNP alignment. SNPs, invariant sites and query-gaps are included |
+`full_align.align` |      Full genome SNP alignment. SNPs, invariant sites and query-gaps are included |
 `accessory_coords.json` |     Coordinates of sequence accessory to each query genome compared with the reference |
 `{referencename}_{k}.csv` | Comma separated results for each genomes SNP and indel count compared with reference and accessory size |
 
