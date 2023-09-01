@@ -118,18 +118,18 @@ Obtain the threshold for clustering by viewing the dendrogram and selecting a di
 If you find KmerAperture useful please cite:
 
 KmerAperture: Retaining k-mer synteny for alignment-free estimation of within-lineage core and accessory differences
-https://www.biorxiv.org/content/10.1101/2022.10.12.511870v1
+https://www.biorxiv.org/content/10.1101/2022.10.12.511870
 
 ```console
 @article {Moore2022.10.12.511870,
-	author = {Moore, Matthew P and Laager, Mirjam and Didelot, Xavier},
+	author = {Moore, Matthew P and Laager, Mirjam and Ribeca, Paolo and Didelot, Xavier},
 	title = {KmerAperture: Retaining k-mer synteny for alignment-free estimation of within-lineage core and accessory differences},
 	elocation-id = {2022.10.12.511870},
 	year = {2022},
 	doi = {10.1101/2022.10.12.511870},
 	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2022/10/16/2022.10.12.511870},
-	eprint = {https://www.biorxiv.org/content/early/2022/10/16/2022.10.12.511870.full.pdf},
+	URL = {https://www.biorxiv.org/content/10.1101/2022.10.12.511870},
+	eprint = {https://www.biorxiv.org/content/10.1101/2022.10.12.511870.full.pdf},
 	journal = {bioRxiv}
 }
 ```
