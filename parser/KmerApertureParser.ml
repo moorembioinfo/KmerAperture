@@ -41,6 +41,18 @@ let rc s =
   done;
   Bytes.to_string b
 
+let new_scheme kmer =
+	let first_base = kmer.[0] in
+	let last_base = kmer.[String.length kmer - 1] in
+	let last_base_complement = match last_base with
+		| 'A' | 'a' -> 'T'
+		| 'C' | 'c' -> 'G'
+		| 'G' | 'g' -> 'C'
+		| 'T' | 't' -> 'A'
+		| _ -> 'N'
+	in
+	if first_base < last_base_complement then kmer else rc kmer
+
 let () =
   let num_params = Array.length Sys.argv in
   if num_params <> 3 && (num_params <> 4 || Sys.argv.(3) <> "-c") then begin
@@ -75,4 +87,3 @@ let () =
     process_contig true
   end;
   close_in file
-
