@@ -23,14 +23,17 @@ First set up a conda environment with the appropriate dependencies:
 conda env create -f environment.yml
 conda activate env-KmerAperture
 
-#mamba can be used instead of conda:
-mamba install ocaml
 ```
 
 Compile the kmer parser. This is recommended for speed
 ```shell
 conda install ocaml -c conda-forge
 ocamlopt.opt -O3 -o parser/KmerApertureParser parser/KmerApertureParser.ml -ccopt -static
+
+
+#mamba can be used instead of conda:
+mamba install ocaml
+
 ```
 Alternatively KmerAperture can be run with ```--pyonly``` and will take longer to read the genomes
 
