@@ -22,6 +22,9 @@ First set up a conda environment with the appropriate dependencies:
 ```shell
 conda env create -f environment.yml
 conda activate env-KmerAperture
+
+#mamba can be used instead of conda:
+mamba install ocaml
 ```
 
 Compile the kmer parser. This is recommended for speed
