@@ -285,10 +285,15 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                                 for x in pmindex:
                                     qb = pairseq[1][x]
                                     if count>0:
-                                        qdict[ri+x] = qb
+                                        #Successive positions
+                                        prior = count -1
+                                        z = pmindex[count] - pmindex[0]
+                                        qdict[ri+z] = qb
+                                        count+=1
                                     else:
+                                        #First position
                                         qdict[ri] = qb
-                                    count+=1
+                                        count+=1
 
 
                             #denseSNP_L += (Lseqlen+1)
@@ -402,8 +407,9 @@ def run_KmerAperture(gList, reference, ksize, pyonly, kmers1, kmer1set):
         querynamedict[genome2] = querydict
         SNPs = len(querydict)
         gapsdict = rangedict(accranges1)
-        querydict.update(gapsdict)
+        #querydict.update(gapsdict) #Bug. silenced for now
         querynamedict_wgaps[genome2] = querydict
+        #print(querynamedict)
         #Adjust accessory to not include dense SNPs and indels
         acclength1_=0
         acclength2_=0
