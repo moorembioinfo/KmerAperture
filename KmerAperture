@@ -39,7 +39,7 @@ def add_args(a):
         "-k",
         help="k-mer size (k). Must be an odd number",
         type=int,
-        default=19,
+        default=31,
         required=False,
     )
     parser.add_argument(
@@ -253,10 +253,10 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                     pmindex = []
                     pmindex = sorted([index for index, elem in enumerate(pairseq[0]) if elem != pairseq[1][index]])
 
-                    if (len(pmindex)/len(pairseq[0])) <0.16:
-
+                    #if (len(pmindex)/len(pairseq[0])) <0.16:
+                    indels = any(pmindex[i] + 1 == pmindex[i + 1] for i in range(len(pmindex) - 1)) #Check for consecutive SNPs (indels)
+                    if not indels:
                         ri = sequence.find(pairseq[0])
-
                         if key == 'reg':
                             qi = qsequence.find((pairseq[1]))
                         if key =='rc':
@@ -265,7 +265,6 @@ def find_dense_SNP2(kmer2ranges, kmer1ranges, k, kmers2, kmers1, reference, qfil
                         if (ri != -1) and (qi != -1):
                             ri+=k
                             qi+=k
-
                             #denseranges.append((qi-k, qi+k+1))
                             #denseranges_ref.append((ri-k, ri+k+1))
                             denseranges.append((qi-k, (qi+L)-k))
